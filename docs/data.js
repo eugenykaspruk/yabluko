@@ -44,7 +44,7 @@ const LESSONS = [
  ]}]},
 
 {code:"0.2", ua:"Читаємо українською", en:"Reading Ukrainian",
- words:[["голосни`й","vowel"],["приголосни`й","consonant"],["теа`тр","theatre"],["музе`й","museum"],["цирк","circus"],["кінотеа`тр","cinema"],["му`зика","music"],
+ words:[["голосни`й","vowel"],["при`голосний","consonant"],["теа`тр","theatre"],["музе`й","museum"],["цирк","circus"],["кінотеа`тр","cinema"],["му`зика","music"],
   ["гіта`ра","guitar"],["піані`но","piano"],["фільм","film"],["о`фіс","office"],["комп'ю`тер","computer"],["спортсме`н","athlete"],["футбо`л","football"],
   ["банк","bank"],["парк","park"],["суперма`ркет","supermarket"],["таксі`","taxi"],["метро`","metro"],["університе`т","university"],["студе`нт","student"],["Євро`па","Europe"],["А`фрика","Africa"]],
  pairs:{title:"Голосні · Vowels → sound", hint:"Match each vowel to its sound.",
@@ -64,8 +64,8 @@ const LESSONS = [
 
 {code:"0.3", ua:"Привіт! Як справи?", en:"Hi, how are you?",
  words:[["До`брий ра`нок!","Good morning!"],["До`брий день!","Good afternoon! / Hello!"],["До`брий ве`чір!","Good evening!"],["Приві`т!","Hi!"],
-  ["До поба`чення!","Goodbye!"],["На добра`ніч!","Good night!"],["Па-па`!","Bye!"],["Ду`же прие`мно!","Nice to meet you!"],["Як спра`ви?","How are you?"],
-  ["до`бре","good / fine"],["чудо`во","great"],["норма`льно","OK"],["непога`но","not bad"],["по`гано","bad"],["Ра`дий / ра`да тебе` ба`чити!","Glad to see you!"]],
+  ["До поба`чення!","Goodbye!"],["На добра`ніч!","Good night!"],["Па-па`!","Bye!"],["Ду`же приє`мно!","Nice to meet you!"],["Як спра`ви?","How are you?"],
+  ["до`бре","good / fine"],["чудо`во","great"],["норма`льно","OK"],["непога`но","not bad"],["пога`но","bad"],["Ра`дий / ра`да тебе` ба`чити!","Glad to see you!"]],
  pairs:{title:"Коли? · Which greeting when?", hint:"Match the situation to the greeting.",
   items:[["08:00 · morning","Добрий ранок!"],["14:00 · afternoon","Добрий день!"],["19:00 · evening","Добрий вечір!"],["23:30 · going to bed","На добраніч!"],["Leaving","До побачення!"],["Meeting a friend","Привіт!"]]},
  quizzes:[{title:"Що сказати? · What would you say?", hint:"Choose the best phrase.", items:[
@@ -205,7 +205,7 @@ const LESSONS = [
   ["друг","по`друга"],["хло`пець","ді`вчина"],["прадіду`сь","прабабу`ся"],["сусі`д","сусі`дка"]]},
  quizzes:[
   {title:"У ___ є · I have, you have…", hint:"Choose the right form after <b>у</b>. Remember: нього, неї, них start with <b>н-</b>.", fixed:true, opts:PRON_Y, items:[
-   ["У ___ є подру`га. <span class=sub>(я)</span>","мене"],["У ___ є брат і сестра`. <span class=sub>(ми)</span>","нас"],["У ___ є хло`пець? <span class=sub>(вона`)</span>","неї"],
+   ["У ___ є по`друга. <span class=sub>(я)</span>","мене"],["У ___ є брат і сестра`. <span class=sub>(ми)</span>","нас"],["У ___ є хло`пець? <span class=sub>(вона`)</span>","неї"],
    ["У ___ є син чи дочка`? <span class=sub>(ти)</span>","тебе"],["У ___ є племі`нник Юрко`. <span class=sub>(вони`)</span>","них"],["У ___ є прадіду`сь. <span class=sub>(він)</span>","нього"],
    ["У ___ є сім'я`? <span class=sub>(ви)</span>","вас"],["У ___ є ста`рший брат. <span class=sub>(вона`)</span>","неї"],["У ___ є двою`рідна сестра`. <span class=sub>(я)</span>","мене"],
    ["У ___ є бабу`ся. <span class=sub>(вони`)</span>","них"],["У ___ є дя`дько? <span class=sub>(ти)</span>","тебе"],["У ___ є сусі`дка Окса`на. <span class=sub>(ми)</span>","нас"],
@@ -270,7 +270,7 @@ const LESSONS = [
 
 {code:"1.5", ua:"Читаємо та обговорюємо: популярні телеведучі", en:"Reading: popular TV hosts",
  words:[["телеведу`чий / телеведу`ча","TV host (m / f)"],["відо`мий / відо`ма","famous (m / f)"],["популя`рний","popular"],["бага`тий","rich"],["розу`мний","clever"],
-  ["весе`лий","cheerful"],["мале`нький","small"],["вели`кий","big"],["громадяни`н / громадя`нка","citizen (m / f)"],["депута`т","member of parliament"],["ко`мік","comedian"],
+  ["весе`лий","cheerful"],["мале`нький","small"],["вели`кий","big"],["громадя`нин / громадя`нка","citizen (m / f)"],["депута`т","member of parliament"],["ко`мік","comedian"],
   ["кана`л","channel"],["програ`ма","programme"],["жі`нка","woman"],["вдо`ма","at home"],["ва`жко","difficult"]],
  pairs:{title:"Протилежності · Opposites", hint:"Match each adjective to its opposite.", items:[["великий","маленький"],["багатий","бідний"],["веселий","сумний"],["хороший","поганий"],["молодий","старий"],["популярний","невідомий"]]},
  quizzes:[{title:"Який? Яка? Яке? Які?", hint:"The adjective agrees with the noun: -ий (він), -а (вона), -е (воно), -і (вони).", items:[
@@ -283,7 +283,7 @@ const LESSONS = [
 {code:"1.6", ua:"Говоримо українською: формули ввічливості", en:"Polite phrases",
  words:[["будь ла`ска","please"],["Дя`кую!","Thank you!"],["Нема` за що!","You're welcome!"],["Ви`бачте!","Sorry!"],["Нічо`го!","That's OK!"],["Перепро`шую!","Excuse me! / Pardon?"],
   ["Скажі`ть, будь ла`ска, …","Could you tell me…"],["Смачно`го!","Enjoy your meal!"],["Бу`дьте здоро`ві!","Bless you!"],["Взає`мно!","Likewise!"],["Га`рних вихідни`х!","Have a nice weekend!"],
-  ["Поба`чимося!","See you!"],["Ду`же прие`мно познайо`митися!","Very nice to meet you!"],["Повтори`, будь ла`ска!","Repeat, please!"],["Зупині`ть, будь ла`ска!","Stop here, please!"]],
+  ["Поба`чимося!","See you!"],["Ду`же приє`мно познайо`митися!","Very nice to meet you!"],["Повтори`, будь ла`ска!","Repeat, please!"],["Зупині`ть, будь ла`ска!","Stop here, please!"]],
  pairs:{title:"Фраза → відповідь · Phrase → reply", hint:"Match each phrase to the natural reply.", items:[["Дякую!","Нема за що!"],["Вибачте!","Нічого!"],["Дуже приємно познайомитися!","Взаємно!"],["Як справи?","Добре, дякую!"],["Побачимося!","Бувай!"]]},
  quizzes:[{title:"Що сказати? · What would you say?", hint:"Choose the best phrase for the situation.", items:[
   ["Someone sneezes.","Будьте здорові!",["Будьте здорові!","Смачного!","Взаємно!","Нема за що!"]],
