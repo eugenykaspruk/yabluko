@@ -28,6 +28,11 @@ board; this app is where students practise between classes.
   stressed vowel). Due and often-missed words first; mistakes repeat at the end of a round.
 - **Уроки (lessons)**: per-lesson games: word cards, a matching game, and 1–2 grammar
   quizzes (e.g. рік/роки/років, мій/моя/моє, у мене/у нього є). A lesson counts as done at 80%.
+  Progress is saved per item (every correct answer, matched pair or viewed card counts).
+  Word cards weigh 15% of a lesson; the matching game and quizzes share 85%.
+- Daily flashcards = due reviews + up to 15 new words a day (`NEW_PER_DAY`). Drills use words
+  already met in flashcards. Grammar terms in `NO_REVIEW` stay out of the daily review.
+- Deep links: `…/yabluko/#lesson-1-1` opens that lesson (used by the Miro board).
 - **Словник**: all unlocked words grouped by lesson, coloured by gender, with memory dots.
 - **Book bar**: % of the whole book practised, lessons opened by the teacher, A1 marker at
   the end of Unit 6, A2 at the end.

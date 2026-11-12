@@ -25,7 +25,7 @@ const unitOf = code => +code.split(".")[0];
 // One word bank item per entry in each lesson's word list.
 const WORDS = [];
 for (const l of LESSONS) for (const [ua, en] of l.words) {
-  WORDS.push({ id: l.code + ":" + plain(ua), ua, en, lesson: l.code });
+  WORDS.push({ id: l.code + ":" + plain(ua), ua, en, lesson: l.code, review: !NO_REVIEW.has(plain(ua).toLowerCase()) });
 }
 const WBYID = Object.fromEntries(WORDS.map(w => [w.id, w]));
 // nouns with a known gender (an entry like "лікар / лікарка" gives two)
@@ -54,9 +54,19 @@ let saveChain = Promise.resolve();
 let view = { tab: "review" };
 
 const isTeacher = () => me && me.role === "teacher";
-const deck = () => WORDS.filter(w => unlocked.has(w.lesson));
+const deck = () => WORDS.filter(w => unlocked.has(w.lesson) && w.review);
 const cardOf = id => cards.get(id) || { box: 0, due: null, lapses: 0, reps: 0 };
-const isDue = id => { const c = cardOf(id); return !c.due || c.due <= today(); };
+const isDue = id => { const c = cardOf(id); return !c.due || c.due <= today(); };   // new words count as due
+const NEW_PER_DAY = 15;   // new words introduced per day, so a freshly unlocked unit doesn't flood the review
+// Today's flashcards: words already in review that are due, then a limited number of new words (book order).
+function todayQueueFrom(words, cs){
+  const t = today(), card = id => cs.get(id);
+  const due = words.filter(w => { const c = card(w.id); return c && (!c.due || c.due <= t); });
+  const fresh = words.filter(w => !card(w.id));
+  const startedToday = [...cs.values()].filter(c => c.reps === 1 && c.last === t).length;
+  return { due, fresh: fresh.slice(0, Math.max(0, NEW_PER_DAY - startedToday)), freshTotal: fresh.length };
+}
+const todayQueue = () => todayQueueFrom(deck(), cards);
 
 /* ---------- spaced repetition (same rules as Mein Wortschatz) ---------- */
 const INTERVALS = [0, 1, 3, 7, 14, 30, 60];
@@ -103,10 +113,32 @@ function games(l){
   (l.quizzes||[]).forEach((q,i) => g.push({ k:"q"+i, t:q.title }));
   return g;
 }
+// Every answered question counts: progress is stored per item ("q0#3", "p#2", "w#5"),
+// so leaving a game halfway keeps what was done. Word cards count for 15% of a lesson,
+// the matching game and quizzes share the other 85%.
+function gamePctFrom(rec, l, k){
+  const count = pre => Object.keys(rec).filter(x => x.startsWith(pre)).length;
+  if (k === "words") return Math.min(100, Math.max(rec.words || 0, count("w#") / l.words.length * 100));
+  if (k === "pairs") return Math.min(100, Math.max(rec.pairs || 0, count("p#") / l.pairs.items.length * 100));
+  const qi = +k.slice(1);
+  return Math.min(100, Math.max(rec[k] || 0, count(k + "#") / l.quizzes[qi].items.length * 100));
+}
 function lessonPctFrom(p, code){
   const l = BYCODE[code]; if (!l) return 0;
-  const g = games(l), rec = p[code] || {};
-  return Math.round(g.reduce((s,x) => s + (rec[x.k]||0), 0) / g.length);
+  const g = games(l), rec = p[code] || {}, others = g.filter(x => x.k !== "words");
+  if (!others.length) return Math.round(gamePctFrom(rec, l, "words"));
+  const w = gamePctFrom(rec, l, "words") * 0.15;
+  const o = others.reduce((s, x) => s + gamePctFrom(rec, l, x.k), 0) / others.length * 0.85;
+  return Math.round(w + o);
+}
+function markItem(lesson, key){
+  const rec = (prog[lesson] ||= {});
+  if (rec[key]) return;
+  rec[key] = 100;
+  const el = document.getElementById("lpct"); if (el) el.textContent = lessonPct(lesson) + "%";
+  if (isTeacher()) return;
+  saveChain = saveChain.then(() => sb.from("progress").upsert({ student_id: me.id, lesson, game: key, best: 100, updated_at: new Date().toISOString() }, { ignoreDuplicates: true }))
+    .then(r => { if (r && r.error) throw r.error; }).catch(() => toast("Не вдалося зберегти · Couldn't save"));
 }
 const lessonPct = code => lessonPctFrom(prog, code);
 function bookPctFrom(p){ return LESSONS.reduce((s,l) => s + lessonPctFrom(p, l.code), 0) / BOOK_TOTAL; }
@@ -181,9 +213,20 @@ sb.auth.onAuthStateChange((event, session) => {
   if (event === "SIGNED_OUT" || !session) { me = null; booted = false; renderLogin(); return; }
   if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && !booted) {
     booted = true;
-    setTimeout(async () => { if (await loadMe(session.user)) { view = { tab: isTeacher() ? "students" : "review" }; render(); } }, 0);
+    setTimeout(async () => { if (await loadMe(session.user)) { view = { tab: isTeacher() ? "students" : "review" }; openFromHash() || render(); } }, 0);
   }
 });
+
+// Links from the Miro board open a lesson directly: …/yabluko/#lesson-1-1
+function openFromHash(){
+  const m = location.hash.match(/^#lesson-(\d+)-(\d+)$/); if (!m || !me) return false;
+  const code = m[1] + "." + m[2]; history.replaceState(null, "", location.pathname);
+  if (!BYCODE[code]) return false;
+  if (unlocked.has(code)) view = { tab: "lesson", code, game: "words" };
+  else { view = { tab: "lessons" }; setTimeout(() => toast(`Урок ${code} відкриється після заняття · Lesson ${code} opens after your class`), 300); }
+  render(); return true;
+}
+window.addEventListener("hashchange", () => { if (me) openFromHash(); });
 
 /* =====================================================================
    SHELL
@@ -192,7 +235,7 @@ function render(){
   if (!me) return renderLogin();
   if (view.tab === "students" || view.tab === "student") { $("#app").className = "wrap wide"; return renderTeacher(); }
   $("#app").className = "wrap";
-  const d = deck(), due = d.filter(w => isDue(w.id)).length, known = d.filter(w => (cardOf(w.id).box||0) >= 3).length;
+  const d = deck(), tq = todayQueue(), due = tq.due.length + tq.fresh.length, known = d.filter(w => (cardOf(w.id).box||0) >= 3).length;
   const book = bookPctFrom(prog), opened = [...unlocked].length;
   const done = LESSONS.filter(l => lessonPct(l.code) >= 80).length;
   $("#app").innerHTML = `
@@ -208,7 +251,7 @@ function render(){
     </div>
     <div class="stats">
       <div class="stat"><b>${d.length}</b><span>Слова · Words</span></div>
-      <div class="stat"><b>${due}</b><span>На сьогодні · Due</span></div>
+      <div class="stat"><b>${due}</b><span>На сьогодні · Today</span></div>
       <div class="stat"><b>${known}</b><span>Вивчено · Learned</span></div>
     </div>
     <div class="tabs">
@@ -227,7 +270,7 @@ function render(){
 }
 function refreshStats(){
   const d = deck(), s = document.querySelectorAll(".stat b");
-  if (s.length === 3) { s[0].textContent = d.length; s[1].textContent = d.filter(w => isDue(w.id)).length; s[2].textContent = d.filter(w => (cardOf(w.id).box||0) >= 3).length; }
+  if (s.length === 3) { const tq = todayQueue(); s[0].textContent = d.length; s[1].textContent = tq.due.length + tq.fresh.length; s[2].textContent = d.filter(w => (cardOf(w.id).box||0) >= 3).length; }
 }
 
 /* ---------- settings ---------- */
@@ -267,7 +310,9 @@ function openSettings(){
    ===================================================================== */
 let rs = { view: "menu" };
 function pick(filter, n){
-  const all = deck().filter(filter);
+  let all = deck().filter(filter);
+  const seen = all.filter(w => cards.has(w.id));
+  if (seen.length >= 4) all = seen;   // drills test words you've already met in flashcards
   const due = shuffle(all.filter(w => isDue(w.id))).sort((a,b) => (cardOf(b.id).lapses||0) - (cardOf(a.id).lapses||0));
   const rest = shuffle(all.filter(w => !isDue(w.id))).sort((a,b) => (cardOf(a.id).box||0) - (cardOf(b.id).box||0));
   return [...due, ...rest].slice(0, n).map(w => w.id);
@@ -279,11 +324,11 @@ function renderReview(){
   if (rs.view === "done") return renderDone();
   const d = deck();
   if (!d.length) { el.innerHTML = `<div class="empty"><div class="big">Ще немає слів</div>Words appear here after each class, when your teacher opens the lesson.</div>`; return; }
-  const due = d.filter(w => isDue(w.id)).length;
+  const tq = todayQueue(), due = tq.due.length + tq.fresh.length;
   const nouns = d.filter(w => nounForms(w).length).length;
   const str = d.filter(stressable).length;
   el.innerHTML = `<div class="modes">
-    <button class="mode wide" data-m="cards"><span class="ic">🗂️</span><b>Картки · Flashcards</b><span>Rate yourself: the app decides when you see each word again</span><span class="pill">${due ? due + " на сьогодні" : "все повторено ✓"}</span></button>
+    <button class="mode wide" data-m="cards"><span class="ic">🗂️</span><b>Картки · Flashcards</b><span>Rate yourself: the app decides when you see each word again</span><span class="pill">${due ? `${tq.due.length} to review · ${tq.fresh.length} new` : "все повторено ✓ · all done for today"}</span></button>
     <button class="mode" data-m="type"><span class="ic">⌨️</span><b>Пиши</b><span>See English, type Ukrainian</span><span class="pill">${DRILL_LEN} питань</span></button>
     <button class="mode" data-m="mc"><span class="ic">✅</span><b>Тест</b><span>Pick the right meaning</span><span class="pill">${DRILL_LEN} питань</span></button>
     <button class="mode" data-m="gender" ${nouns < 3 ? "disabled" : ""}><span class="ic">🎨</span><b>він · вона · воно</b><span>Which gender is the noun?</span><span class="pill">${nouns} іменників</span></button>
@@ -294,7 +339,8 @@ function renderReview(){
 }
 function startReview(mode){
   if (mode === "cards") {
-    const ids = pick(w => isDue(w.id), 9999);
+    const tq = todayQueue();
+    const ids = [...shuffle(tq.due).sort((a,b) => (cardOf(b.id).lapses||0) - (cardOf(a.id).lapses||0)), ...tq.fresh].map(w => w.id);
     if (!ids.length) { $("#main").innerHTML = `<div class="empty"><div class="big">Все повторено! 🎉</div>Nothing is due today. Try a drill!</div><div class="row"><button class="btn ghost" id="back">Назад · Back</button></div>`; $("#back").onclick = toMenu; return; }
     rs = { view:"cards", mode, queue: ids.slice(1), cur: ids[0], total: ids.length, done: 0, revealed: false, dir: rs.dir || "ua" };
   } else {
@@ -313,6 +359,7 @@ function rheader(){
 }
 
 /* flashcards */
+const days = n => n === 1 ? "1 day" : n + " days";
 function renderCards(){
   const el = $("#main");
   if (!rs.cur) { rs.view = "done"; return renderDone(); }
@@ -322,10 +369,10 @@ function renderCards(){
       <div class="front ${rs.dir==="en" ? "small" : ""}">${esc(front)}</div>
       ${rs.revealed ? `<hr class="div"><div class="backtxt">${esc(back)}</div>` : ""}</div>
     ${rs.revealed ? `<div class="row rate">
-        <button class="r0" data-r="again">Знову<small>зараз</small></button>
-        <button class="r1" data-r="hard">Важко<small>1 день</small></button>
-        <button class="r2" data-r="good">Добре<small>${INTERVALS[Math.min((c.box||0)+1, MAXBOX)]} дн.</small></button>
-        <button class="r3" data-r="easy">Легко<small>${INTERVALS[Math.min((c.box||0)+2, MAXBOX)]} дн.</small></button></div>`
+        <button class="r0" data-r="again">Знову<small>now</small></button>
+        <button class="r1" data-r="hard">Важко<small>1 day</small></button>
+        <button class="r2" data-r="good">Добре<small>${days(INTERVALS[Math.min((c.box||0)+1, MAXBOX)])}</small></button>
+        <button class="r3" data-r="easy">Легко<small>${days(INTERVALS[Math.min((c.box||0)+2, MAXBOX)])}</small></button></div>`
       : `<div class="row"><button class="btn" id="show">Показати · Show</button></div>`}`;
   $("#quit").onclick = toMenu; wireSpeak(el);
   $("#flip").onclick = () => { rs.dir = rs.dir === "ua" ? "en" : "ua"; renderCards(); };
@@ -491,9 +538,9 @@ function renderLessons(){
 }
 function renderLesson(){
   const l = BYCODE[view.code], g = games(l), rec = prog[l.code] || {};
-  $("#main").innerHTML = `<div class="top"><button id="backL">← Уроки</button><span>${lessonPct(l.code)}%</span><span></span></div>
+  $("#main").innerHTML = `<div class="top"><button id="backL">← Уроки</button><span id="lpct">${lessonPct(l.code)}%</span><span></span></div>
     <h2 style="margin-bottom:2px">${l.code} · ${esc(ST(l.ua))}</h2><p class="sub">${esc(l.en)}</p>
-    <div class="gtabs">${g.map((x,i) => `<button data-k="${x.k}" class="${view.game === x.k ? "on" : ""}">${i+1}. ${esc(x.t)}${(rec[x.k]||0) >= 80 ? '<span class="ck">✓</span>' : ""}</button>`).join("")}</div>
+    <div class="gtabs">${g.map((x,i) => `<button data-k="${x.k}" class="${view.game === x.k ? "on" : ""}">${i+1}. ${esc(x.t)}${gamePctFrom(rec, l, x.k) >= 80 ? '<span class="ck">✓</span>' : ""}</button>`).join("")}</div>
     <div id="game"></div>`;
   $("#backL").onclick = () => { view = { tab: "lessons" }; render(); };
   document.querySelectorAll(".gtabs button").forEach(b => b.onclick = () => { view.game = b.dataset.k; renderLesson(); });
@@ -503,12 +550,12 @@ function renderLesson(){
   else gQuiz(box, l, +view.game.slice(1));
 }
 function gWords(box, l){
-  let deckL = l.words.map(w => [ST(w[0]), w[1], w[0]]), i = 0; const seen = new Set();
+  let deckL = l.words.map((w, idx) => [ST(w[0]), w[1], w[0], idx]), i = 0;
   box.innerHTML = `<p class="note" style="margin:0 0 10px">Read each word aloud, then tap the card. New words also go into your daily review.</p>
     <div class="card" id="wc" style="cursor:pointer"><div class="meta" id="wpos"></div><div class="front" id="wf"></div><div class="backtxt hidden" id="wb"></div></div>
     <div class="row two"><button class="btn ghost" id="wprev">←</button><button class="btn" id="wnext">→</button></div>`;
   function show(){ const [ua, en] = deckL[i]; $("#wf").textContent = ua; $("#wb").textContent = en; $("#wb").classList.add("hidden");
-    $("#wpos").textContent = `${i+1} / ${deckL.length}`; seen.add(i); saveProgress(l.code, "words", seen.size / deckL.length * 100); }
+    $("#wpos").textContent = `${i+1} / ${deckL.length}`; markItem(l.code, "w#" + deckL[i][3]); }
   $("#wc").onclick = () => { $("#wb").classList.toggle("hidden"); speak(deckL[i][2]); };
   $("#wnext").onclick = () => { i = (i+1) % deckL.length; show(); };
   $("#wprev").onclick = () => { i = (i-1+deckL.length) % deckL.length; show(); };
@@ -522,8 +569,8 @@ function gPairs(box, l){
     b.onclick = () => { if (b.classList.contains("done")) return;
       if (!sel || sel.dataset.s === s) { if (sel) sel.classList.remove("sel"); sel = b; b.classList.add("sel"); return; }
       tries++;
-      if (sel.dataset.i === b.dataset.i) { [sel, b].forEach(x => { x.classList.remove("sel"); x.classList.add("done"); }); done++; sel = null;
-        if (done === P.length) { $("#mFb").textContent = `Чудово! All pairs in ${tries} tries.`; saveProgress(l.code, "pairs", 100); }
+      if (sel.dataset.i === b.dataset.i) { [sel, b].forEach(x => { x.classList.remove("sel"); x.classList.add("done"); }); done++; markItem(l.code, "p#" + b.dataset.i); sel = null;
+        if (done === P.length) { $("#mFb").textContent = `Чудово! All pairs in ${tries} tries.`; }
       } else { const a = sel; [a, b].forEach(x => x.classList.add("wrong")); setTimeout(() => [a, b].forEach(x => x.classList.remove("wrong", "sel")), 350); sel = null; } };
     return b; }
   shuffle(P.map((x,i) => [x[0], i])).forEach(([t,i]) => $("#mL").append(tile(t, i, "L")));
@@ -531,23 +578,23 @@ function gPairs(box, l){
 }
 function gQuiz(box, l, qi){
   const Q = l.quizzes[qi]; let order, i, score;
-  function start(){ order = shuffle(Q.items); i = 0; score = 0; step(); }
+  function start(){ order = shuffle(Q.items.map((it, idx) => [...it.slice(0, 2), it[2], idx])); i = 0; score = 0; step(); }
   function step(){
     if (i >= order.length) {
-      const pct = score / order.length * 100; saveProgress(l.code, "q" + qi, pct);
+      const pct = score / order.length * 100;
       box.innerHTML = `<div class="card"><div class="big" style="font-family:'Noto Serif',serif;font-size:26px">${score} / ${order.length}</div>
-        <div class="note">${pct === 100 ? "Відмінно!" : pct >= 80 ? "Добре! Counts as done." : "Try again: 80% counts as done."} · Best: ${(prog[l.code]||{})["q"+qi] || 0}%</div></div>
+        <div class="note">${pct === 100 ? "Відмінно!" : pct >= 80 ? "Добре! Counts as done." : "Try again: 80% counts as done."} · ${Math.round(gamePctFrom(prog[l.code] || {}, l, "q" + qi))}% of this game done</div></div>
         <div class="row two"><button class="btn ghost" id="qb">Інша гра</button><button class="btn" id="qa">Ще раз</button></div>`;
       $("#qa").onclick = start; $("#qb").onclick = () => { renderLesson(); }; return;
     }
-    const [q, ans, own] = order[i]; let opts = (own || Q.opts).map(ST); if (!Q.fixed) opts = shuffle(opts);
+    const [q, ans, own, idx] = order[i]; let opts = (own || Q.opts).map(ST); if (!Q.fixed) opts = shuffle(opts);
     box.innerHTML = `<div class="progress"><div style="width:${i / order.length * 100}%"></div></div>
       <p class="note" style="margin:0 0 6px">${Q.hint || ""}</p>
       <div class="q">${ST(q).replace("___", '<span class="gap">&nbsp;</span>').replace(/class=sub/g, 'class="sub2"')}</div>
       <div class="chips">${opts.map(o => `<button class="opt" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div><div id="qfb"></div>`;
     let done = false;
     box.querySelectorAll("[data-o]").forEach(b => b.onclick = () => {
-      if (done) return; done = true; const ok = plain(b.dataset.o) === plain(ans); if (ok) score++;
+      if (done) return; done = true; const ok = plain(b.dataset.o) === plain(ans); if (ok) { score++; markItem(l.code, "q" + qi + "#" + idx); }
       b.classList.add(ok ? "ok" : "bad");
       if (!ok) box.querySelectorAll("[data-o]").forEach(x => { if (plain(x.dataset.o) === plain(ans)) x.classList.add("ok"); });
       const full = ST(q).replace(/<span[^>]*>[^<]*<\/span>/g, "").replace("___", ST(ans)).trim();
@@ -597,8 +644,8 @@ async function loadTeacher(){
 }
 function studentStats(s){
   const un = T.unlocks[s.id] || new Set(), pr = T.progress[s.id] || {}, cs = T.cards[s.id] || new Map();
-  const words = WORDS.filter(w => un.has(w.lesson));
-  const due = words.filter(w => { const c = cs.get(w.id); return !c || !c.due || c.due <= today(); }).length;
+  const words = WORDS.filter(w => un.has(w.lesson) && w.review);
+  const tq = todayQueueFrom(words, cs), due = tq.due.length + tq.fresh.length;
   const learned = words.filter(w => (cs.get(w.id)?.box || 0) >= 3).length;
   return { un, pr, cs, words, due, learned, book: bookPctFrom(pr) };
 }
@@ -622,7 +669,7 @@ function renderStudentList(){
     <div class="tlist">${T.students.length ? T.students.map(s => { const st = studentStats(s);
       return `<button class="trow" data-s="${s.id}"><div><b>${esc(s.nickname)}</b> <span class="note">@${esc(s.username)}</span>
         <div class="m2">Last active: ${ago(s.last_seen)} · ${st.un.size} lessons open</div></div>
-        <div class="nums"><div><b>${st.book.toFixed(1)}%</b>book</div><div><b>${st.due}</b>due</div><div><b>${st.learned}</b>learned</div></div></button>`; }).join("")
+        <div class="nums"><div><b>${st.book.toFixed(1)}%</b>book</div><div><b>${st.due}</b>today</div><div><b>${st.learned}</b>learned</div></div></button>`; }).join("")
       : `<div class="empty"><div class="big">No students yet</div>Create your first student above.</div>`}</div>`;
   $("#add").onclick = openAddStudent;
   document.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { view = { tab: "student", id: b.dataset.s }; renderStudent(); });
@@ -686,7 +733,7 @@ function renderStudent(){
   const maxB = Math.max(1, ...boxes);
   $("#tmain").innerHTML = `<div class="top" style="margin-top:14px"><button id="tb">← All students</button><span></span><span></span></div>
     <h2 style="margin-bottom:2px">${esc(s.nickname)} <span class="note">@${esc(s.username)}</span></h2>
-    <p class="sub">Last active ${ago(s.last_seen)} · book ${st.book.toFixed(1)}% · ${st.due} words due · ${st.learned} learned</p>
+    <p class="sub">Last active ${ago(s.last_seen)} · book ${st.book.toFixed(1)}% · ${st.due} words for today · ${st.learned} learned</p>
     <div class="grid2">
       <div class="panel"><h3>Уроки · Lessons</h3><p class="note" style="margin-top:0">Tick a lesson after you've done it in class. Its games and words open in the student's app.</p>
         ${UNITS.filter(u => LESSONS.some(l => unitOf(l.code) === u.n)).map(u => { const ls = LESSONS.filter(l => unitOf(l.code) === u.n); const allOn = ls.every(l => st.un.has(l.code));

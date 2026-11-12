@@ -321,3 +321,48 @@ const GENDER = (() => {
   for (const [g, s] of [["m", m], ["f", f], ["n", n], ["pl", pl]]) for (const w of s.split(" ")) out[w] = g;
   return out;
 })();
+
+// Words from the book's vocabulary lists (the Словник frames on the board) that the
+// lesson boxes above don't already cover. Merged into each lesson's word list below.
+const EXTRA_WORDS = {
+ "0.2":[["А`зія","Asia"],["Аме`рика","America"],["бале`т","ballet"],["баскетбо`л","basketball"],["дире`ктор","director"],["леге`нда","legend"],["о`пера","opera"],
+  ["при`нтер","printer"],["секрета`р","secretary"],["стадіо`н","stadium"],["ува`га","attention"],["Украї`на","Ukraine"],["фе`рма","farm"],["фі`рма","company, firm"],["хоке`й","hockey"],["центр","centre"]],
+ "0.3":[["ве`чір","evening"],["годи`нник","clock, watch"],["день","day"],["діало`г","dialogue"],["ніч","night"],["ра`нок","morning"]],
+ "0.5":[["ціка`во","interesting"]],
+ "0.6":[["вікно`","window"],["зо`шит","notebook"],["кни`жка","book"],["па`рта","school desk"],["ру`чка","pen"],["стіле`ць","chair"],
+  ["чотирна`дцять","14"],["шістна`дцять","16"],["сімна`дцять","17"],["вісімна`дцять","18"],["дев'ятна`дцять","19"]],
+ "0.8":[["но`мер","number"],["телефо`н","telephone"],["мілья`рд","billion"],["слу`жба поряту`нку","rescue service"]],
+ "0.9":[["Австра`лія","Australia"],["Аме`рика","America"],["США","the USA"],["Росі`я","Russia"],["Туре`ччина","Turkey"],["короле`ва","queen"],
+  ["іспа`нська","Spanish (language)"],["італі`йська","Italian (language)"],["кита`йська","Chinese (language)"],["німе`цька","German (language)"],
+  ["по`льська","Polish (language)"],["португа`льська","Portuguese (language)"],["росі`йська","Russian (language)"],["туре`цька","Turkish (language)"],
+  ["францу`зька","French (language)"],["япо`нська","Japanese (language)"],["брази`льський","Brazilian"]],
+ "0.10":[["борода`","beard"],["завда`ння","task"],["ка`ва","coffee"],["конве`рт","envelope"],["коха`ння","love (romantic)"],["ла`мпа","lamp"],["любо`в","love"],
+  ["молодці`","well done!"],["ніж","knife"],["ніч","night"],["оліве`ць","pencil"],["парасо`ля","umbrella"],["підру`чник","textbook"],["пра`вильно","correct, right"],
+  ["ра`діо","radio"],["ра`дість","joy"],["сіль","salt"],["сім'я`","family"],["стаття`","article"],["та`то","dad"],["ба`тько","father"],["чай","tea"]],
+ "1.2":[["Ви`бачте!","Sorry!"],["Перепро`шую!","Excuse me!"],["поме`р / поме`рла","died (m / f)"],["уже` / вже","already"]],
+ "1.3":[["бейсбо`л","baseball"],["буди`нок","house, building"],["го`рдість","pride"],["дру`жний","close-knit, friendly"],["золоти`й","golden"],
+  ["інозе`мна мо`ва","foreign language"],["інозе`мний","foreign"],["капіта`н","captain"],["коли`шній","former"],["компози`тор","composer"],["лі`дер","leader"],
+  ["малюва`ння","drawing, painting"],["мер","mayor"],["мисте`цтво","art"],["моде`ль","model (person)"],["молоди`й","young"],["па`ртія","party (political)"],
+  ["патріо`т","patriot"],["піані`но","piano"],["по`дорож","journey, travel"],["прі`звисько","nickname"],["професі`йний","professional"],["ра`зом","together"],
+  ["столи`ця","capital city"],["та`нці","dancing"],["трофе`й","trophy"]],
+ "1.4":[["вели`кий","big"],["взуття`","footwear"],["гара`зд","OK, all right"],["гурто`житок (гурто`житки)","dormitory"],["інозе`мець","foreigner"],
+  ["кафе`","café"],["ко`лір (кольори`)","colour"],["лі`ки","medicine"],["меню`","menu"],["мо`ре","sea"],["огіро`к (огірки`)","cucumber"],["о`зеро","lake"],
+  ["сік","juice"],["словни`к","dictionary"],["сло`во","word"],["сподіва`юсь","I hope"],["трамва`й","tram"]],
+ "1.5":[["мільярде`р / мільярде`рка","billionaire (m / f)"],["неофіці`йний чолові`к","common-law husband"],["сло`во","word"]],
+ "1.6":[["нога`","leg, foot"],["Поба`чимося пізні`ше!","See you later!"]],
+ "1.7":[["архіте`ктор","architect"],["джи`нси","jeans"],["кла`сний","cool (informal)"],["комп'ю`терні і`гри","computer games"]],
+};
+for (const [code, list] of Object.entries(EXTRA_WORDS)) {
+  const l = LESSONS.find(x => x.code === code);
+  const have = new Set(l.words.map(w => w[0].replace(/`/g, "").toLowerCase()));
+  for (const w of list) if (!have.has(w[0].replace(/`/g, "").toLowerCase())) l.words.push(w);
+}
+// Grammar terms and classroom instructions: kept in the lesson games, left out of daily review.
+const NO_REVIEW = new Set(["голосний","приголосний","вправа","сторінка","малюнок","чоловічий рід","жіночий рід","середній рід"]);
+Object.assign(GENDER, (() => {
+  const g = {m:"вечір годинник день діалог ранок балет директор принтер секретар стадіон хокей центр конверт ніж олівець підручник чай зошит номер телефон мільярд капітан композитор лідер мер патріот трофей бейсбол гуртожиток іноземець колір огірок сік словник трамвай мільярдер архітектор",
+    f:"Азія Америка легенда опера увага ферма фірма борода кава лампа любов ніч парасоля радість сіль сім'я стаття книжка парта ручка Австралія Росія Туреччина королева гордість модель партія подорож столиця нога мільярдерка",
+    n:"завдання кохання радіо вікно малювання мистецтво прізвисько піаніно взуття кафе меню море озеро слово",
+    pl:"танці ліки джинси"};
+  const o = {}; for (const [k, s] of Object.entries(g)) for (const w of s.split(" ")) o[w] = k; return o;
+})());
