@@ -462,7 +462,7 @@ function renderDone(){
   } else {
     const n = rs.total - rs.missed.length, pct = Math.round(rs.right / Math.max(1, n) * 100);
     const msg = pct === 100 ? "Чудово! 🏆" : pct >= 80 ? "Дуже добре! 💪" : pct >= 50 ? "Добре! 👍" : "Практикуйся далі! 📚";
-    el.innerHTML = `<div class="card"><div class="big" style="font-family:Lora,serif;font-size:26px">${msg}</div>
+    el.innerHTML = `<div class="card"><div class="big" style="font-family:'Noto Serif',serif;font-size:26px">${msg}</div>
       <div class="summary"><div><b>${rs.right}</b><span class="note">правильно</span></div><div><b>${rs.missed.length}</b><span class="note">помилок</span></div></div>
       ${rs.missed.length ? `<div class="misslist"><div class="meta">Повтори ці слова:</div>${rs.missed.map(id => { const w = WBYID[id]; return `<div>${esc(ST(w.ua))} · <span class="note">${esc(w.en)}</span></div>`; }).join("")}</div>` : ""}</div>
       <div class="row two"><button class="btn ghost" id="back">Меню</button><button class="btn" id="again">Ще раз</button></div>`;
@@ -535,7 +535,7 @@ function gQuiz(box, l, qi){
   function step(){
     if (i >= order.length) {
       const pct = score / order.length * 100; saveProgress(l.code, "q" + qi, pct);
-      box.innerHTML = `<div class="card"><div class="big" style="font-family:Lora,serif;font-size:26px">${score} / ${order.length}</div>
+      box.innerHTML = `<div class="card"><div class="big" style="font-family:'Noto Serif',serif;font-size:26px">${score} / ${order.length}</div>
         <div class="note">${pct === 100 ? "Відмінно!" : pct >= 80 ? "Добре! Counts as done." : "Try again: 80% counts as done."} · Best: ${(prog[l.code]||{})["q"+qi] || 0}%</div></div>
         <div class="row two"><button class="btn ghost" id="qb">Інша гра</button><button class="btn" id="qa">Ще раз</button></div>`;
       $("#qa").onclick = start; $("#qb").onclick = () => { renderLesson(); }; return;

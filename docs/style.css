@@ -12,15 +12,15 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--ink);font-family:"Noto Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 button,input,select{font:inherit;color:var(--ink)}
 button{cursor:pointer}
 .flag{height:6px;background:linear-gradient(180deg,var(--blue) 0 50%,var(--yellow) 50%)}
 .wrap{max-width:620px;margin:0 auto;padding:18px 16px 56px}
 .wrap.wide{max-width:980px}
-h1{font-family:Lora,serif;font-weight:700;font-size:30px;margin:4px 0 2px;letter-spacing:-.01em}
-h2{font-family:Lora,serif;font-size:21px;margin:0 0 10px}
-h3{font-family:Lora,serif;font-size:17px;margin:0 0 8px}
+h1{font-family:"Noto Serif",serif;font-weight:700;font-size:30px;margin:4px 0 2px;letter-spacing:-.01em}
+h2{font-family:"Noto Serif",serif;font-size:21px;margin:0 0 10px}
+h3{font-family:"Noto Serif",serif;font-size:17px;margin:0 0 8px}
 .sub{color:var(--muted);font-size:14px;margin:0 0 16px}
 .status{color:var(--muted);font-size:14px;text-align:center;margin:12px 0}
 .hidden{display:none!important}
@@ -45,7 +45,7 @@ h3{font-family:Lora,serif;font-size:17px;margin:0 0 8px}
 
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
-.stat b{display:block;font-family:Lora,serif;font-size:26px;line-height:1.1}
+.stat b{display:block;font-family:"Noto Serif",serif;font-size:26px;line-height:1.1}
 .stat span{font-size:12px;color:var(--muted)}
 
 .tabs{display:flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;margin-bottom:16px}
@@ -57,7 +57,7 @@ h3{font-family:Lora,serif;font-size:17px;margin:0 0 8px}
 .mode{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 14px;text-align:left;color:var(--ink);box-shadow:0 2px 0 var(--line)}
 .mode:active{transform:translateY(1px)}
 .mode .ic{font-size:24px;margin-bottom:8px;display:block}
-.mode b{display:block;font-family:Lora,serif;font-size:18px}
+.mode b{display:block;font-family:"Noto Serif",serif;font-size:18px}
 .mode span{display:block;font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.35}
 .mode .pill{display:inline-block;margin-top:8px;font-size:11.5px;font-weight:600;background:var(--soft);border-radius:999px;padding:3px 9px;color:var(--ink)}
 .mode[disabled]{opacity:.45;cursor:default}
@@ -65,7 +65,7 @@ h3{font-family:Lora,serif;font-size:17px;margin:0 0 8px}
 
 /* cards & drills */
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:28px 20px;text-align:center;min-height:210px;display:flex;flex-direction:column;justify-content:center;gap:10px;box-shadow:0 2px 0 var(--line);position:relative}
-.front{font-family:Lora,serif;font-size:32px;font-weight:500;line-height:1.25;word-break:break-word}
+.front{font-family:"Noto Serif",serif;font-size:32px;font-weight:500;line-height:1.25;word-break:break-word}
 .front.small{font-size:23px}
 .backtxt{font-size:19px}
 .note{font-size:13px;color:var(--muted)}
@@ -100,13 +100,13 @@ input.answer.ok{border-color:var(--green)} input.answer.bad{border-color:var(--r
 .opt.ok{border-color:var(--green);background:color-mix(in srgb,var(--green) 12%,var(--card))}
 .opt.bad{border-color:var(--red);background:color-mix(in srgb,var(--red) 12%,var(--card))}
 .gbtns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
-.gbtns button{border:0;border-radius:12px;padding:15px 4px;font-family:Lora,serif;font-weight:700;font-size:18px;color:#fff;transition:opacity .2s}
+.gbtns button{border:0;border-radius:12px;padding:15px 4px;font-family:"Noto Serif",serif;font-weight:700;font-size:18px;color:#fff;transition:opacity .2s}
 .gbtns .m{background:var(--he)}.gbtns .f{background:var(--she)}.gbtns .n{background:var(--it)}.gbtns .pl{background:var(--they)}
 .gbtns button.dim{opacity:.25}
 .g-m{color:var(--he)}.g-f{color:var(--she)}.g-n{color:var(--it)}.g-pl{color:var(--they)}
-.stress{display:flex;justify-content:center;flex-wrap:wrap;gap:2px;font-family:Lora,serif;font-size:36px;font-weight:500}
+.stress{display:flex;justify-content:center;flex-wrap:wrap;gap:2px;font-family:"Noto Serif",serif;font-size:36px;font-weight:500}
 .stress span{padding:0 1px}
-.stress button{border:2px dashed var(--line);background:var(--yellow-soft);border-radius:10px;font-family:Lora,serif;font-size:36px;padding:0 6px;line-height:1.25;min-width:34px}
+.stress button{border:2px dashed var(--line);background:var(--yellow-soft);border-radius:10px;font-family:"Noto Serif",serif;font-size:36px;padding:0 6px;line-height:1.25;min-width:34px}
 .stress button.ok{border:2px solid var(--green);background:color-mix(in srgb,var(--green) 18%,var(--card))}
 .stress button.bad{border:2px solid var(--red);background:color-mix(in srgb,var(--red) 15%,var(--card))}
 .fb{margin-top:12px;border-radius:12px;padding:12px 14px;font-size:14.5px;line-height:1.45}
@@ -115,15 +115,15 @@ input.answer.ok{border-color:var(--green)} input.answer.bad{border-color:var(--r
 .fb.near{background:color-mix(in srgb,var(--orange) 14%,var(--card));border:1px solid var(--orange)}
 
 .empty{text-align:center;color:var(--muted);padding:26px 10px;line-height:1.5}
-.empty .big{font-family:Lora,serif;font-size:24px;color:var(--ink);margin-bottom:6px}
+.empty .big{font-family:"Noto Serif",serif;font-size:24px;color:var(--ink);margin-bottom:6px}
 .summary{display:flex;justify-content:center;gap:24px;margin:10px 0}
-.summary div{text-align:center}.summary b{font-family:Lora,serif;font-size:30px;display:block}
+.summary div{text-align:center}.summary b{font-family:"Noto Serif",serif;font-size:30px;display:block}
 .misslist{text-align:left;margin-top:10px}
 .misslist div{padding:8px 0;border-top:1px dashed var(--line);font-size:14px}
 
 /* lessons */
 .unit{margin-bottom:20px}
-.unit h3 small{color:var(--muted);font-family:Inter,sans-serif;font-weight:500;font-size:13px}
+.unit h3 small{color:var(--muted);font-family:"Noto Sans",sans-serif;font-weight:500;font-size:13px}
 .lessons{display:grid;gap:8px}
 .lesson{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:left;width:100%}
 .lesson .code{font-weight:700;font-size:12px;color:var(--muted);min-width:30px}
@@ -182,7 +182,7 @@ label.f{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
 .trow b{font-size:15px}
 .trow .m2{font-size:12.5px;color:var(--muted);margin-top:2px}
 .trow .nums{display:flex;gap:14px;text-align:center;font-size:11px;color:var(--muted)}
-.trow .nums b{display:block;font-family:Lora,serif;font-size:18px;color:var(--ink)}
+.trow .nums b{display:block;font-family:"Noto Serif",serif;font-size:18px;color:var(--ink)}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
 .toggle{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px dashed var(--line);font-size:14px}
 .toggle:first-of-type{border-top:0}
