@@ -21,9 +21,11 @@ board; this app is where students practise between classes.
   practise only the lessons the teacher has unlocked, can change nickname and password.
 
 ## Student features
-- **Повторення (daily review)**: spaced repetition modelled on the teacher's German
+- **Home**: book bar, one big "Today" button (due reviews + up to 15 new words, then a
+  5-question mixed check), opened lessons newest first, and "More practice" (drills + word list).
+- **Daily review**: spaced repetition modelled on the teacher's German
   "Mein Wortschatz" app. Leitner boxes with intervals 0/1/3/7/14/30/60 days; self-rated
-  flashcards (Знову/Важко/Добре/Легко) plus drills: typing (Cyrillic keypad, typo
+  flashcards (Forgot / Tricky / Knew it / Easy) plus drills: typing (Cyrillic keypad, typo
   tolerance, и/і hint), multiple choice, він·вона·воно gender, and a stress drill (tap the
   stressed vowel). Due and often-missed words first; mistakes repeat at the end of a round.
 - **Уроки (lessons)**: per-lesson games: word cards, a matching game, and 1–2 grammar
@@ -33,7 +35,7 @@ board; this app is where students practise between classes.
 - Daily flashcards = due reviews + up to 15 new words a day (`NEW_PER_DAY`). Drills use words
   already met in flashcards. Grammar terms in `NO_REVIEW` stay out of the daily review.
 - Deep links: `…/yabluko/#lesson-1-1` opens that lesson (used by the Miro board).
-- **Словник**: all unlocked words grouped by lesson, coloured by gender, with memory dots.
+- **Словник**: all unlocked words grouped by lesson (most recently opened first), coloured by gender, with memory dots.
 - **Book bar**: % of the whole book practised, lessons opened by the teacher, A1 marker at
   the end of Unit 6, A2 at the end.
 - Installable on a phone home screen (web manifest). Light and dark mode.

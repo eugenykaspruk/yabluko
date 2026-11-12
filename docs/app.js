@@ -48,12 +48,17 @@ function stressable(w){
 /* ---------- state ---------- */
 let me = null;            // {id, username, nickname, role}
 let unlocked = new Set(); // lesson codes
+let unlockedAt = {};      // lesson code -> ISO time it was opened
 let cards = new Map();    // word_id -> card row
 let prog = {};            // lesson -> {game: best}
 let saveChain = Promise.resolve();
-let view = { tab: "review" };
+let view = { tab: "home" };
 
 const isTeacher = () => me && me.role === "teacher";
+// Opened lessons, most recently opened first (then later lessons first)
+const LIDX = Object.fromEntries(LESSONS.map((l, i) => [l.code, i]));
+const openLessonsNewest = () => [...unlocked].sort((a, b) =>
+  String(unlockedAt[b] || "").localeCompare(String(unlockedAt[a] || "")) || LIDX[b] - LIDX[a]);
 const deck = () => WORDS.filter(w => unlocked.has(w.lesson) && w.review);
 const cardOf = id => cards.get(id) || { box: 0, due: null, lapses: 0, reps: 0 };
 const isDue = id => { const c = cardOf(id); return !c.due || c.due <= today(); };   // new words count as due
@@ -197,12 +202,13 @@ async function loadMe(user){
     return true;
   }
   const [u, c, g] = await Promise.all([
-    sb.from("unlocks").select("lesson").eq("student_id", me.id),
+    sb.from("unlocks").select("lesson,unlocked_at").eq("student_id", me.id),
     sb.from("cards").select("*").eq("student_id", me.id),
     sb.from("progress").select("lesson,game,best").eq("student_id", me.id),
   ]);
   if (u.error || c.error || g.error) { $("#app").innerHTML = `<p class="status">Не вдалося завантажити · Couldn't load your data. Refresh to try again.</p>`; return false; }
   unlocked = new Set(u.data.map(r => r.lesson).filter(c => BYCODE[c]));
+  unlockedAt = Object.fromEntries(u.data.map(r => [r.lesson, r.unlocked_at]));
   cards = new Map(c.data.map(r => [r.word_id, r]));
   prog = {}; for (const r of g.data) (prog[r.lesson] ||= {})[r.game] = r.best;
   return true;
@@ -213,7 +219,7 @@ sb.auth.onAuthStateChange((event, session) => {
   if (event === "SIGNED_OUT" || !session) { me = null; booted = false; renderLogin(); return; }
   if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && !booted) {
     booted = true;
-    setTimeout(async () => { if (await loadMe(session.user)) { view = { tab: isTeacher() ? "students" : "review" }; openFromHash() || render(); } }, 0);
+    setTimeout(async () => { if (await loadMe(session.user)) { view = { tab: isTeacher() ? "students" : "home" }; openFromHash() || render(); } }, 0);
   }
 });
 
@@ -223,7 +229,7 @@ function openFromHash(){
   const code = m[1] + "." + m[2]; history.replaceState(null, "", location.pathname);
   if (!BYCODE[code]) return false;
   if (unlocked.has(code)) view = { tab: "lesson", code, game: "words" };
-  else { view = { tab: "lessons" }; setTimeout(() => toast(`Урок ${code} відкриється після заняття · Lesson ${code} opens after your class`), 300); }
+  else { view = { tab: "home" }; setTimeout(() => toast(`Урок ${code} відкриється після заняття · Lesson ${code} opens after your class`), 300); }
   render(); return true;
 }
 window.addEventListener("hashchange", () => { if (me) openFromHash(); });
@@ -231,46 +237,71 @@ window.addEventListener("hashchange", () => { if (me) openFromHash(); });
 /* =====================================================================
    SHELL
    ===================================================================== */
+function bookBar(){
+  const book = bookPctFrom(prog), opened = unlocked.size;
+  const done = LESSONS.filter(l => lessonPct(l.code) >= 80).length;
+  return `<div class="book">
+      <div class="lbl"><span>Книга · Book</span><span><b>${book < 1 && book > 0 ? book.toFixed(1) : Math.round(book)}%</b> · ${done} / ${BOOK_TOTAL} lessons done</span></div>
+      <div class="bbar"><div class="open" style="width:${opened / BOOK_TOTAL * 100}%"></div><i style="width:${book}%"></i>
+        <div class="mark" style="left:${A1_MARK / BOOK_TOTAL * 100}%"><span>A1</span></div><div class="mark" style="left:100%"><span>A2</span></div></div>
+      <div class="legend2"><span><i style="background:var(--blue)"></i>practised</span><span><i style="background:var(--yellow)"></i>opened by your teacher (${opened})</span></div>
+    </div>`;
+}
 function render(){
   if (!me) return renderLogin();
   if (view.tab === "students" || view.tab === "student") { $("#app").className = "wrap wide"; return renderTeacher(); }
   $("#app").className = "wrap";
-  const d = deck(), tq = todayQueue(), due = tq.due.length + tq.fresh.length, known = d.filter(w => (cardOf(w.id).box||0) >= 3).length;
-  const book = bookPctFrom(prog), opened = [...unlocked].length;
-  const done = LESSONS.filter(l => lessonPct(l.code) >= 80).length;
+  const inSession = rs.view !== "menu";
   $("#app").innerHTML = `
     <div class="head">
       <div><h1>Привіт, ${esc(me.nickname)}!</h1><p class="sub" style="margin:0">${isTeacher() ? "Teacher preview · nothing here is saved" : "Українська · Яблуко"}</p></div>
       <div class="who">${isTeacher() ? `<button class="chip" id="toT">👩‍🏫 Учні</button>` : ""}<button class="chip" id="settings" aria-label="Settings">⚙️</button></div>
     </div>
-    <div class="book">
-      <div class="lbl"><span>Книга · Book</span><span><b>${book < 1 && book > 0 ? book.toFixed(1) : Math.round(book)}%</b> · ${done} / ${BOOK_TOTAL} lessons done</span></div>
-      <div class="bbar"><div class="open" style="width:${opened / BOOK_TOTAL * 100}%"></div><i style="width:${book}%"></i>
-        <div class="mark" style="left:${A1_MARK / BOOK_TOTAL * 100}%"><span>A1</span></div><div class="mark" style="left:100%"><span>A2</span></div></div>
-      <div class="legend2"><span><i style="background:var(--blue)"></i>practised</span><span><i style="background:var(--yellow)"></i>opened by your teacher (${opened})</span></div>
-    </div>
-    <div class="stats">
-      <div class="stat"><b>${d.length}</b><span>Слова · Words</span></div>
-      <div class="stat"><b>${due}</b><span>На сьогодні · Today</span></div>
-      <div class="stat"><b>${known}</b><span>Вивчено · Learned</span></div>
-    </div>
-    <div class="tabs">
-      <button data-tab="review" class="${view.tab==="review"?"on":""}">Повторення</button>
-      <button data-tab="lessons" class="${view.tab==="lessons"||view.tab==="lesson"?"on":""}">Уроки</button>
-      <button data-tab="list" class="${view.tab==="list"?"on":""}">Словник</button>
-    </div>
+    ${inSession || view.tab === "lesson" || view.tab === "list" ? "" : bookBar()}
     <section id="main"></section>`;
-  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { view = { tab: b.dataset.tab }; render(); });
   $("#settings").onclick = openSettings;
   if ($("#toT")) $("#toT").onclick = () => { view = { tab: "students" }; render(); };
-  if (view.tab === "review") renderReview();
-  else if (view.tab === "lessons") renderLessons();
+  if (inSession) renderReview();
   else if (view.tab === "lesson") renderLesson();
-  else renderList();
+  else if (view.tab === "list") renderList();
+  else renderHome();
 }
-function refreshStats(){
-  const d = deck(), s = document.querySelectorAll(".stat b");
-  if (s.length === 3) { const tq = todayQueue(); s[0].textContent = d.length; s[1].textContent = tq.due.length + tq.fresh.length; s[2].textContent = d.filter(w => (cardOf(w.id).box||0) >= 3).length; }
+function refreshStats(){}
+function goHome(){ rs = { view: "menu", dir: rs.dir }; view = { tab: "home" }; render(); window.scrollTo(0, 0); }
+
+/* ---------- home ---------- */
+function renderHome(){
+  const el = $("#main"), d = deck();
+  const tq = todayQueue(), n = tq.due.length + tq.fresh.length;
+  const open = openLessonsNewest(), lockedCount = LESSONS.length - open.length;
+  const nouns = d.filter(w => nounForms(w).length && cards.has(w.id)).length;
+  const str = d.filter(w => stressable(w) && cards.has(w.id)).length;
+  const met = d.filter(w => cards.has(w.id)).length;
+  let today;
+  if (!d.length) today = `<div class="today empty-t"><div><b>Ще немає слів</b><span>Words appear after your first class.</span></div></div>`;
+  else if (n) today = `<button class="today" id="start"><span class="tnum">${n}</span><span class="tlbl">на сьогодні<small>words today</small></span><span class="tgo">Почати ▶</span></button>`;
+  else today = `<div class="today done-t"><span class="tnum">✓</span><span class="tlbl">На сьогодні все<small>All done for today</small></span>${met >= 4 ? `<button class="btn small ghost" id="extra">Ще трохи · A bit more</button>` : ""}</div>`;
+  el.innerHTML = today + `
+    <h3 class="sec">Уроки <small>Lessons</small></h3>
+    <div class="lessons">${open.map(code => { const l = BYCODE[code], p = lessonPct(code);
+      return `<button class="lesson" data-l="${code}"><span class="code">${code}</span>
+        <span class="t"><b>${esc(ST(l.ua))}</b><span>${esc(l.en)}</span><div class="mini"><i class="${p >= 80 ? "full" : ""}" style="width:${p}%"></i></div></span>
+        <span class="pct ${p >= 80 ? "done" : ""}">${p >= 80 ? "✓" : p + "%"}</span></button>`; }).join("")}
+      ${lockedCount ? `<div class="lesson locked"><span class="code">🔒</span><span class="t"><span>${lockedCount} more lessons open after your classes</span></span></div>` : ""}</div>
+    <h3 class="sec">Ще практика <small>More practice</small></h3>
+    <div class="modes">
+      <button class="mode" data-m="type" ${met < 4 ? "disabled" : ""}><span class="ic">⌨️</span><b>Пиши</b><span>Type it in Ukrainian</span></button>
+      <button class="mode" data-m="mc" ${met < 4 ? "disabled" : ""}><span class="ic">✅</span><b>Тест</b><span>Pick the meaning</span></button>
+      <button class="mode" data-m="gender" ${nouns < 3 ? "disabled" : ""}><span class="ic">🎨</span><b>він · вона · воно</b><span>Noun genders</span></button>
+      <button class="mode" data-m="stress" ${str < 3 ? "disabled" : ""}><span class="ic">🎯</span><b>Наголос</b><span>Find the stress</span></button>
+      <button class="mode wide" id="toList"><span class="ic">📖</span><b>Словник · Word list</b><span>${d.length} words · ${d.filter(w => (cardOf(w.id).box || 0) >= 3).length} learned · newest first</span></button>
+    </div>
+    ${met < 4 && d.length ? `<p class="status">The practice games open after your first flashcards.</p>` : ""}`;
+  if ($("#start")) $("#start").onclick = () => startReview("cards");
+  if ($("#extra")) $("#extra").onclick = () => startReview("mix");
+  el.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { view = { tab: "lesson", code: b.dataset.l, game: "words" }; render(); window.scrollTo(0, 0); });
+  el.querySelectorAll("[data-m]").forEach(b => b.onclick = () => startReview(b.dataset.m));
+  $("#toList").onclick = () => { view = { tab: "list" }; render(); window.scrollTo(0, 0); };
 }
 
 /* ---------- settings ---------- */
@@ -318,43 +349,35 @@ function pick(filter, n){
   return [...due, ...rest].slice(0, n).map(w => w.id);
 }
 function renderReview(){
-  const el = $("#main");
   if (rs.view === "cards") return renderCards();
   if (rs.view === "drill") return renderDrill();
   if (rs.view === "done") return renderDone();
-  const d = deck();
-  if (!d.length) { el.innerHTML = `<div class="empty"><div class="big">Ще немає слів</div>Words appear here after each class, when your teacher opens the lesson.</div>`; return; }
-  const tq = todayQueue(), due = tq.due.length + tq.fresh.length;
-  const nouns = d.filter(w => nounForms(w).length).length;
-  const str = d.filter(stressable).length;
-  el.innerHTML = `<div class="modes">
-    <button class="mode wide" data-m="cards"><span class="ic">🗂️</span><b>Картки · Flashcards</b><span>Rate yourself: the app decides when you see each word again</span><span class="pill">${due ? `${tq.due.length} to review · ${tq.fresh.length} new` : "все повторено ✓ · all done for today"}</span></button>
-    <button class="mode" data-m="type"><span class="ic">⌨️</span><b>Пиши</b><span>See English, type Ukrainian</span><span class="pill">${DRILL_LEN} питань</span></button>
-    <button class="mode" data-m="mc"><span class="ic">✅</span><b>Тест</b><span>Pick the right meaning</span><span class="pill">${DRILL_LEN} питань</span></button>
-    <button class="mode" data-m="gender" ${nouns < 3 ? "disabled" : ""}><span class="ic">🎨</span><b>він · вона · воно</b><span>Which gender is the noun?</span><span class="pill">${nouns} іменників</span></button>
-    <button class="mode" data-m="stress" ${str < 3 ? "disabled" : ""}><span class="ic">🎯</span><b>Наголос</b><span>Tap the stressed vowel</span><span class="pill">${str} слів</span></button>
-  </div>
-  <p class="status">Due and difficult words come first. Mistakes come back at the end.</p>`;
-  el.querySelectorAll("[data-m]").forEach(b => b.onclick = () => startReview(b.dataset.m));
+  if (rs.view === "bridge") return renderBridge();
+  goHome();
 }
 function startReview(mode){
   if (mode === "cards") {
     const tq = todayQueue();
     const ids = [...shuffle(tq.due).sort((a,b) => (cardOf(b.id).lapses||0) - (cardOf(a.id).lapses||0)), ...tq.fresh].map(w => w.id);
-    if (!ids.length) { $("#main").innerHTML = `<div class="empty"><div class="big">Все повторено! 🎉</div>Nothing is due today. Try a drill!</div><div class="row"><button class="btn ghost" id="back">Назад · Back</button></div>`; $("#back").onclick = toMenu; return; }
+    if (!ids.length) return goHome();
     rs = { view:"cards", mode, queue: ids.slice(1), cur: ids[0], total: ids.length, done: 0, revealed: false, dir: rs.dir || "ua" };
   } else {
+    const mix = mode === "mix";
+    const len = mix ? 5 : DRILL_LEN;
     const filter = mode === "gender" ? (w => nounForms(w).length) : mode === "stress" ? (w => !!stressable(w)) : (() => true);
-    const ids = pick(filter, DRILL_LEN);
-    rs = { view:"drill", mode, queue: ids.slice(1), cur: ids[0], total: ids.length, done: 0, right: 0, missed: [], retried: new Set(), answered: null, dir: rs.dir };
+    // the quick check after flashcards prefers words practised today
+    const ids = mix ? [...new Set([...shuffle(deck().filter(w => cardOf(w.id).last === today())).map(w => w.id), ...pick(() => true, len)])].slice(0, len)
+                    : pick(filter, len);
+    if (!ids.length) return goHome();
+    rs = { view:"drill", mode, mix, queue: ids.slice(1), cur: ids[0], total: ids.length, done: 0, right: 0, missed: [], retried: new Set(), answered: null, dir: rs.dir };
     prepQuestion();
   }
-  renderReview();
+  render(); window.scrollTo(0, 0);
 }
-function toMenu(){ rs = { view: "menu", dir: rs.dir }; renderReview(); }
+function toMenu(){ goHome(); }
 function rheader(){
   const pct = Math.round(rs.done / Math.max(1, rs.total) * 100);
-  return `<div class="top"><button id="quit">← Меню</button><span>${rs.done+1} / ${rs.total}</span>${rs.view==="cards" ? `<button id="flip">${rs.dir==="ua" ? "UA → EN" : "EN → UA"}</button>` : "<span></span>"}</div>
+  return `<div class="top"><button id="quit">← Назад</button><span>${rs.done+1} / ${rs.total}</span>${rs.view==="cards" ? `<button id="flip">${rs.dir==="ua" ? "UA → EN" : "EN → UA"}</button>` : "<span></span>"}</div>
     <div class="progress"><div style="width:${pct}%"></div></div>`;
 }
 
@@ -369,11 +392,11 @@ function renderCards(){
       <div class="front ${rs.dir==="en" ? "small" : ""}">${esc(front)}</div>
       ${rs.revealed ? `<hr class="div"><div class="backtxt">${esc(back)}</div>` : ""}</div>
     ${rs.revealed ? `<div class="row rate">
-        <button class="r0" data-r="again">Знову<small>now</small></button>
-        <button class="r1" data-r="hard">Важко<small>1 day</small></button>
-        <button class="r2" data-r="good">Добре<small>${days(INTERVALS[Math.min((c.box||0)+1, MAXBOX)])}</small></button>
-        <button class="r3" data-r="easy">Легко<small>${days(INTERVALS[Math.min((c.box||0)+2, MAXBOX)])}</small></button></div>`
-      : `<div class="row"><button class="btn" id="show">Показати · Show</button></div>`}`;
+        <button class="r0" data-r="again">Forgot<small>see it again now</small></button>
+        <button class="r1" data-r="hard">Tricky<small>again in 1 day</small></button>
+        <button class="r2" data-r="good">Knew it<small>again in ${days(INTERVALS[Math.min((c.box||0)+1, MAXBOX)])}</small></button>
+        <button class="r3" data-r="easy">Easy<small>again in ${days(INTERVALS[Math.min((c.box||0)+2, MAXBOX)])}</small></button></div>`
+      : `<div class="row"><button class="btn" id="show">Show answer</button></div>`}`;
   $("#quit").onclick = toMenu; wireSpeak(el);
   $("#flip").onclick = () => { rs.dir = rs.dir === "ua" ? "en" : "ua"; renderCards(); };
   if (rs.revealed) el.querySelectorAll("[data-r]").forEach(b => b.onclick = () => {
@@ -412,6 +435,7 @@ function checkTyped(given, w){
 function prepQuestion(){
   if (!rs.cur) return;
   const w = WBYID[rs.cur]; rs.answered = null;
+  if (rs.mix) rs.mode = shuffle(["type", "mc", ...(nounForms(w).length ? ["gender"] : []), ...(stressable(w) ? ["stress"] : [])])[0];
   if (rs.mode === "mc") {
     const dir = Math.random() < .5 ? "ua" : "en";
     let pool = deck().filter(x => x.id !== w.id && x.en !== w.en);
@@ -505,23 +529,27 @@ function advance(){ rs.done++; rs.cur = rs.queue.shift() || null; prepQuestion()
 function renderDone(){
   const el = $("#main");
   if (rs.mode === "cards") {
-    el.innerHTML = `<div class="empty"><div class="big">Молодець! 💪</div>${rs.done} cards reviewed.</div><div class="row"><button class="btn" id="back">До меню · Menu</button></div>`;
+    const met = deck().filter(w => cards.has(w.id)).length;
+    el.innerHTML = `<div class="empty"><div class="big">Молодець! 💪</div>${rs.done} cards done.${met >= 4 ? "<br>Now a quick check: 5 questions." : ""}</div>
+      <div class="row ${met >= 4 ? "two" : ""}"><button class="btn ghost" id="back">${met >= 4 ? "Skip" : "Done"}</button>${met >= 4 ? `<button class="btn" id="mixgo">Почати ▶</button>` : ""}</div>`;
+    if ($("#mixgo")) $("#mixgo").onclick = () => startReview("mix");
   } else {
     const n = rs.total - rs.missed.length, pct = Math.round(rs.right / Math.max(1, n) * 100);
     const msg = pct === 100 ? "Чудово! 🏆" : pct >= 80 ? "Дуже добре! 💪" : pct >= 50 ? "Добре! 👍" : "Практикуйся далі! 📚";
     el.innerHTML = `<div class="card"><div class="big" style="font-family:'Noto Serif',serif;font-size:26px">${msg}</div>
-      <div class="summary"><div><b>${rs.right}</b><span class="note">правильно</span></div><div><b>${rs.missed.length}</b><span class="note">помилок</span></div></div>
-      ${rs.missed.length ? `<div class="misslist"><div class="meta">Повтори ці слова:</div>${rs.missed.map(id => { const w = WBYID[id]; return `<div>${esc(ST(w.ua))} · <span class="note">${esc(w.en)}</span></div>`; }).join("")}</div>` : ""}</div>
-      <div class="row two"><button class="btn ghost" id="back">Меню</button><button class="btn" id="again">Ще раз</button></div>`;
-    $("#again").onclick = () => startReview(rs.mode);
+      <div class="summary"><div><b>${rs.right}</b><span class="note">correct</span></div><div><b>${rs.missed.length}</b><span class="note">mistakes</span></div></div>
+      ${rs.missed.length ? `<div class="misslist"><div class="meta">Повтори ці слова · Review these</div>${rs.missed.map(id => { const w = WBYID[id]; return `<div>${esc(ST(w.ua))} · <span class="note">${esc(w.en)}</span></div>`; }).join("")}</div>` : ""}</div>
+      <div class="row two"><button class="btn ghost" id="back">Done</button><button class="btn" id="again">Again</button></div>`;
+    $("#again").onclick = () => startReview(rs.mix ? "mix" : rs.mode);
   }
-  $("#back").onclick = toMenu;
+  $("#back").onclick = goHome;
 }
+function renderBridge(){ goHome(); }
 
 /* =====================================================================
    LESSONS (games per lesson)
    ===================================================================== */
-function renderLessons(){
+function renderLessons_unused(){
   const el = $("#main");
   el.innerHTML = UNITS.map(u => {
     const ls = LESSONS.filter(l => unitOf(l.code) === u.n);
@@ -538,11 +566,11 @@ function renderLessons(){
 }
 function renderLesson(){
   const l = BYCODE[view.code], g = games(l), rec = prog[l.code] || {};
-  $("#main").innerHTML = `<div class="top"><button id="backL">← Уроки</button><span id="lpct">${lessonPct(l.code)}%</span><span></span></div>
+  $("#main").innerHTML = `<div class="top"><button id="backL">← Назад</button><span id="lpct">${lessonPct(l.code)}%</span><span></span></div>
     <h2 style="margin-bottom:2px">${l.code} · ${esc(ST(l.ua))}</h2><p class="sub">${esc(l.en)}</p>
-    <div class="gtabs">${g.map((x,i) => `<button data-k="${x.k}" class="${view.game === x.k ? "on" : ""}">${i+1}. ${esc(x.t)}${gamePctFrom(rec, l, x.k) >= 80 ? '<span class="ck">✓</span>' : ""}</button>`).join("")}</div>
+    <div class="gtabs">${g.map((x,i) => `<button data-k="${x.k}" class="${view.game === x.k ? "on" : ""}"><span class="num n${i % 7}">${i+1}</span>${esc(x.t)}${gamePctFrom(rec, l, x.k) >= 80 ? '<span class="ck">✓</span>' : ""}</button>`).join("")}</div>
     <div id="game"></div>`;
-  $("#backL").onclick = () => { view = { tab: "lessons" }; render(); };
+  $("#backL").onclick = goHome;
   document.querySelectorAll(".gtabs button").forEach(b => b.onclick = () => { view.game = b.dataset.k; renderLesson(); });
   const box = $("#game");
   if (view.game === "words") gWords(box, l);
@@ -611,18 +639,19 @@ function gQuiz(box, l, qi){
    ===================================================================== */
 function renderList(){
   const el = $("#main");
-  el.innerHTML = `<input class="search" id="q" placeholder="Шукати… (українською або англійською)">
+  el.innerHTML = `<div class="top"><button id="backW">← Назад</button><span>Словник · Word list</span><span></span></div>
+    <input class="search" id="q" placeholder="Шукати… (українською або англійською)">
     <p class="note" style="margin:-6px 0 14px"><span class="g-m">він</span> · <span class="g-f">вона</span> · <span class="g-n">воно</span> · <span class="g-pl">вони</span> — colour shows the gender</p><div id="lb"></div>`;
   const draw = () => {
     const q = $("#q").value.trim().toLowerCase(), groups = {};
     for (const w of deck()) { if (q && !(plain(w.ua).toLowerCase().includes(q) || w.en.toLowerCase().includes(q))) continue; (groups[w.lesson] ||= []).push(w); }
-    const keys = LESSONS.map(l => l.code).filter(k => groups[k]);
+    const keys = openLessonsNewest().filter(k => groups[k]);
     $("#lb").innerHTML = keys.length ? keys.map(k => `<div class="unit"><h3>${k} · ${esc(ST(BYCODE[k].ua))}</h3>${groups[k].map(w => {
       const f = nounForms(w); const cls = f.length === 1 ? "g-" + f[0].g : "";
       return `<div class="w"><div><div class="ua ${cls}">${esc(ST(w.ua))}</div><div class="en">${esc(w.en)}</div></div><div class="lvl">${Array.from({length: MAXBOX}, (_,i) => `<i class="${i < (cardOf(w.id).box||0) ? "f" : ""}"></i>`).join("")}</div></div>`; }).join("")}</div>`).join("")
       : `<div class="empty">${deck().length ? "Нічого не знайдено · No matches." : "Words appear here after your teacher opens a lesson."}</div>`;
   };
-  $("#q").oninput = draw; draw();
+  $("#q").oninput = draw; draw(); $("#backW").onclick = goHome;
 }
 
 /* =====================================================================
@@ -657,7 +686,7 @@ function ago(ts){
 async function renderTeacher(){
   $("#app").innerHTML = `<div class="head"><div><h1>Учні · Students</h1><p class="sub" style="margin:0">Hi ${esc(me.nickname)} · teacher</p></div>
     <div class="who"><button class="chip" id="toP">🍏 Practice</button><button class="chip" id="settings">⚙️</button></div></div><div id="tmain"><p class="status">Завантаження…</p></div>`;
-  $("#toP").onclick = () => { view = { tab: "review" }; rs = { view: "menu" }; render(); };
+  $("#toP").onclick = () => { view = { tab: "home" }; rs = { view: "menu" }; render(); };
   $("#settings").onclick = openSettings;
   try { await loadTeacher(); } catch (e) { $("#tmain").innerHTML = `<p class="status">Couldn't load students: ${esc(e.message || e)}</p>`; return; }
   if (view.tab === "student" && T.students.find(s => s.id === view.id)) return renderStudent();
