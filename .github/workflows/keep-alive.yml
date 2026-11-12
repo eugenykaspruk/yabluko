@@ -1,0 +1,15 @@
+# Pings the Supabase project twice a week so the free plan never pauses it for inactivity.
+name: Keep Supabase awake
+on:
+  schedule:
+    - cron: "17 6 * * 1,4"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping database
+        run: |
+          curl -s -o /dev/null -w "%{http_code}\n" \
+            "https://pdusjphcxyugzzfdhcbb.supabase.co/rest/v1/profiles?select=id&limit=1" \
+            -H "apikey: sb_publishable_hle4nye7fyaX5DFv7NYIGw_hiwy8xDp"
