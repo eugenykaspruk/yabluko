@@ -128,6 +128,8 @@ grant select, insert, delete on public.unlocks to authenticated;
 grant select, insert, update, delete on public.progress to authenticated;
 grant select, insert, update, delete on public.cards to authenticated;
 grant execute on function public.is_teacher() to authenticated;
+-- the server-side "admin" function runs as service_role and needs to read profiles
+grant select, insert, update, delete on public.profiles, public.unlocks, public.progress, public.cards to service_role;
 
 -- 9. Profiles for logins that already exist (e.g. your own teacher login, if you made it first)
 insert into public.profiles (id, username, nickname)
