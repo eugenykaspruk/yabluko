@@ -5,12 +5,14 @@
   --red:#d9473b; --orange:#d9822b; --green:#2e9a5d; --navy:#3d6fd8;
   --he:#2e5fa8; --she:#c8372d; --it:#2f8a57; --they:#7a4fb3;
   --c0:#4c7bf3; --c1:#f0a53a; --c2:#3cb37a; --c3:#e8616b; --c4:#9a6ee0; --c5:#26b0c2; --c6:#ec7fb8;
-  --r:16px;
+  --r:16px; --open-c:var(--yellow); --open-o:.45;
 }
 @media (prefers-color-scheme: dark){
-  :root{ --bg:#0f1217; --card:#181c23; --ink:#eef1f6; --muted:#9aa3b2; --line:#2a303b; --soft:#20252e;
-    --yellow-soft:#3a3315; --he:#76a1e6; --she:#ec6a5f; --it:#5cc08a; --they:#b38ce6; --navy:#5f8ff0; }
+  :root:not([data-theme="light"]){ --bg:#0f1217; --card:#181c23; --ink:#eef1f6; --muted:#9aa3b2; --line:#2a303b; --soft:#20252e;
+    --yellow-soft:#3a3315; --he:#76a1e6; --she:#ec6a5f; --it:#5cc08a; --they:#b38ce6; --navy:#5f8ff0; --open-c:#f2b233; --open-o:.75; color-scheme:dark; }
 }
+:root[data-theme="dark"]{ --bg:#0f1217; --card:#181c23; --ink:#eef1f6; --muted:#9aa3b2; --line:#2a303b; --soft:#20252e;
+    --yellow-soft:#3a3315; --he:#76a1e6; --she:#ec6a5f; --it:#5cc08a; --they:#b38ce6; --navy:#5f8ff0; --open-c:#f2b233; --open-o:.75; color-scheme:dark; }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:"Noto Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -38,7 +40,7 @@ h3{font-family:"Noto Serif",serif;font-size:17px;margin:0 0 8px}
 .book .lbl b{color:var(--ink)}
 .bbar{position:relative;height:12px;background:var(--soft);border-radius:999px;margin:4px 0 20px}
 .bbar i{position:relative;z-index:1;display:block;height:100%;min-width:6px;border-radius:999px;background:linear-gradient(90deg,var(--blue),#3a86e0);transition:width .6s}
-.bbar .open{position:absolute;top:0;left:0;height:100%;border-radius:999px;background:var(--yellow);opacity:.45}
+.bbar .open{position:absolute;top:0;left:0;height:100%;border-radius:999px;background:var(--open-c);opacity:var(--open-o)}
 .bbar .mark{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--ink)}
 .bbar .mark span{position:absolute;top:24px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;white-space:nowrap}
 .legend2{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px}
@@ -93,8 +95,11 @@ hr.div{border:0;border-top:1px dashed var(--line);width:60%;margin:6px auto}
 input.answer{width:100%;padding:14px;border-radius:12px;border:2px solid var(--line);background:var(--card);font-weight:500;font-size:20px;text-align:center;margin-top:12px}
 input.answer:focus{outline:none;border-color:var(--ink)}
 input.answer.ok{border-color:var(--green)} input.answer.bad{border-color:var(--red)} input.answer.near{border-color:var(--orange)}
-.kb{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:10px}
-.kb button{border:1px solid var(--line);background:var(--card);border-radius:8px;min-width:34px;height:36px;font-size:16px;padding:0 6px}
+.kb{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.kb .kr{display:flex;gap:4px;justify-content:center}
+.kb button{flex:1 1 0;min-width:0;max-width:46px;border:1px solid var(--line);background:var(--card);border-radius:8px;height:42px;font-size:17px;padding:0}
+.kb button.sp{max-width:260px;flex:6 1 0;font-size:13px;color:var(--muted)}
+.kb button.bs{max-width:80px;flex:1.5 1 0}
 
 .opts{display:grid;gap:8px;margin-top:12px}
 .opt{border:2px solid var(--line);background:var(--card);border-radius:12px;padding:14px;font-size:16px;text-align:left}
@@ -216,3 +221,11 @@ h3.sec small{font-family:"Noto Sans",sans-serif;font-size:13px;font-weight:500;c
 .num{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;color:#fff;font-size:12px;font-weight:700;margin-right:7px;vertical-align:-1px}
 .n0{background:var(--c0)}.n1{background:var(--c1)}.n2{background:var(--c2)}.n3{background:var(--c3)}.n4{background:var(--c4)}.n5{background:var(--c5)}.n6{background:var(--c6)}
 .rate small{font-size:10.5px}
+
+/* lessons + settings */
+.more-l{width:100%;border:1px dashed var(--line);background:transparent;border-radius:14px;padding:13px;font-weight:600;font-size:14px;color:var(--muted)}
+.more-l:hover{border-color:var(--ink);color:var(--ink)}
+.legend2 i.op{background:var(--open-c);opacity:var(--open-o)}
+.seg{display:flex;gap:6px;margin-bottom:18px}
+.seg button{flex:1;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 6px;font-size:13px;font-weight:600}
+.seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}

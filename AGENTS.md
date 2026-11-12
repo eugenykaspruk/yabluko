@@ -75,3 +75,10 @@ board; this app is where students practise between classes.
 2. Check all stress marks with the dictionary.
 3. Push to `main`; GitHub Pages redeploys in about a minute. New lessons appear in the
    teacher's unlock list automatically.
+
+## Nov 2026 updates
+- Progress bar ("Прогрес") shows one level: Intro + Units 1–6 → A1 (52 lessons). When the teacher unlocks any Unit 7 lesson it restarts for Units 7–12 → A2 (42). Nothing is deleted.
+- Rating buttons: Ще раз / Важко / Знаю / Легко (English below). No intervals shown to students.
+- Typing drills use a ЙЦУКЕН on-screen keyboard.
+- Home shows the 3 newest lessons + "Усі уроки" page (view.tab "lessons").
+- Theme: Auto / Light / Dark in Settings (localStorage "theme", html[data-theme]).
