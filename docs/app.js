@@ -12,9 +12,10 @@ const ST = s => String(s).replace(/`/g, "́");            // backtick → stress
 const plain = s => String(s).replace(/[`́]/g, "");
 /* ---------- interface language: 0 bilingual · 1 labels in Ukrainian · 2 everything in Ukrainian ---------- */
 let STAGE = 0;
-const L  = (ua, en) => STAGE >= 1 ? ua : `${ua} · ${en}`;              // short labels, inline
-const Ls = (ua, en) => STAGE >= 1 ? ua : `${ua}<small>${en}</small>`;  // short labels, stacked
-const I  = (ua, en) => STAGE >= 2 ? ua : en;                           // instructions (English until stage 2)
+let EN = false;   // teacher screens and the teacher's settings are English only
+const L  = (ua, en) => EN ? en : STAGE >= 1 ? ua : `${ua} · ${en}`;              // short labels, inline
+const Ls = (ua, en) => EN ? en : STAGE >= 1 ? ua : `${ua}<small>${en}</small>`;  // short labels, stacked
+const I  = (ua, en) => EN ? en : STAGE >= 2 ? ua : en;                           // instructions (English until stage 2)
 const I2 = (ua, en) => STAGE >= 2 ? ua : `${ua} · ${en}`;              // messages already shown in both
 const TT = t => STAGE >= 1 ? String(t).split(" · ")[0] : t;            // "Ukrainian · English" titles
 const pl = (n, one, few, many) => { const a = Math.abs(n) % 100, b = a % 10;
@@ -369,6 +370,7 @@ function bookBar(){
 }
 function render(){
   if (!me) return renderLogin();
+  EN = false;
   updateStage();
   if (view.tab === "students" || view.tab === "student") { $("#app").className = "wrap wide"; return renderTeacher(); }
   $("#app").className = "wrap";
@@ -376,7 +378,7 @@ function render(){
   $("#app").innerHTML = `
     <div class="head">
       <div><h1>Привіт, ${esc(me.nickname)}!</h1>${isTeacher() ? `<p class="sub" style="margin:0">Teacher preview · nothing here is saved</p>` : ""}</div>
-      <div class="who">${isTeacher() ? `<button class="chip" id="toT">👩‍🏫 Учні</button>` : ""}<button class="chip" id="settings" aria-label="Settings">⚙️</button></div>
+      <div class="who">${isTeacher() ? `<button class="chip" id="toT">👩‍🏫 Students</button>` : ""}<button class="chip" id="settings" aria-label="Settings">⚙️</button></div>
     </div>
     ${inSession || view.tab === "lesson" || view.tab === "list" || view.tab === "lessons" ? "" : bookBar()}
     <section id="main"></section>`;
@@ -484,7 +486,7 @@ function openSettings(page){
   if (page === "theme") {
     const th = getTheme();
     openModal(back + `<h2>${L("Тема", "Theme")}</h2>
-      <div class="setlist" id="theme">${[["auto","🌗","Авто",I("Як на телефоні", "Follows your phone")],["light","☀️","Світла",STAGE >= 1 ? "" : "Light"],["dark","🌙","Темна",STAGE >= 1 ? "" : "Dark"]].map(([k,i,t,e]) =>
+      <div class="setlist" id="theme">${(EN ? [["auto","🌗","Auto","Follows your device"],["light","☀️","Light",""],["dark","🌙","Dark",""]] : [["auto","🌗","Авто",I("Як на телефоні", "Follows your phone")],["light","☀️","Світла",STAGE >= 1 ? "" : "Light"],["dark","🌙","Темна",STAGE >= 1 ? "" : "Dark"]]).map(([k,i,t,e]) =>
         `<button class="setrow ${th === k ? "on" : ""}" data-t="${k}"><span class="si">${i}</span><span class="st">${t}<small>${e}</small></span><span class="sa">${th === k ? "✓" : ""}</span></button>`).join("")}</div>`);
     $("#theme").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { setTheme(b.dataset.t); openSettings("theme"); });
   } else if (page === "nick") {
@@ -901,8 +903,9 @@ function ago(ts){
   return d < 1 ? "today" : d < 2 ? "yesterday" : Math.floor(d) + " days ago";
 }
 async function renderTeacher(){
-  $("#app").innerHTML = `<div class="head"><div><h1>Учні · Students</h1><p class="sub" style="margin:0">Hi ${esc(me.nickname)} · teacher</p></div>
-    <div class="who"><button class="chip" id="prices">💶 Ціни · Prices</button><button class="chip" id="toP">🍏 Practice</button><button class="chip" id="settings">⚙️</button></div></div><div id="tmain"><p class="status">Завантаження…</p></div>`;
+  EN = true;
+  $("#app").innerHTML = `<div class="head"><div><h1>Students</h1><p class="sub" style="margin:0">Hi ${esc(me.nickname)} · teacher</p></div>
+    <div class="who"><button class="chip" id="prices">💶 Prices</button><button class="chip" id="toP">🍏 Practice</button><button class="chip" id="settings">⚙️</button></div></div><div id="tmain"><p class="status">Завантаження…</p></div>`;
   $("#toP").onclick = () => { view = { tab: "home" }; rs = { view: "menu" }; render(); };
   $("#prices").onclick = () => T ? openPrices() : null;
   $("#settings").onclick = () => openSettings();
@@ -913,7 +916,7 @@ async function renderTeacher(){
 function renderStudentList(){
   view = { tab: "students" };
   const ms = T.ledgerOK ? monthSummary() : null;
-  $("#tmain").innerHTML = `<div class="row" style="margin:16px 0"><button class="btn blue" id="add">＋ Новий учень · New student</button></div>
+  $("#tmain").innerHTML = `<div class="row" style="margin:16px 0"><button class="btn blue" id="add">＋ New student</button></div>
     ${ms ? `<p class="note" style="margin:-4px 0 12px">This month: <b>${ms.held}</b> ${ms.held === 1 ? "class" : "classes"} held · <b>${money(ms.paid) || 0}</b> received</p>`
          : `<p class="note" style="margin:-4px 0 12px">Class balances are off until you run <b>supabase/migrate_2.sql</b> in Supabase.</p>`}
     <div class="tlist">${T.students.length ? T.students.map(s => { const st = studentStats(s);
@@ -946,7 +949,7 @@ function showCredentials(username, password, title){
   $("#cd").onclick = () => { closeModal(); renderTeacher(); };
 }
 function openAddStudent(){
-  openModal(`<h2>Новий учень · New student</h2>
+  openModal(`<h2>New student</h2>
     <label class="f" for="an">Name or nickname (shown in the app)</label><input class="field" id="an" placeholder="Maria">
     <label class="f" for="au">Login name (for logging in, can't be changed)</label><input class="field" id="au" placeholder="maria" autocapitalize="off" spellcheck="false">
     <div class="hint2">Small letters a–z, numbers, dot, dash or underscore.</div>
@@ -972,7 +975,7 @@ function openAddStudent(){
       const sel = $("#aun").value;
       const codes = sel === "" ? [] : sel.includes(".") ? [sel] : LESSONS.filter(l => String(unitOf(l.code)) === sel).map(l => l.code);
       if (codes.length) await sb.from("unlocks").insert(codes.map(lesson => ({ student_id: r.id, lesson })));
-      showCredentials(username, password, "Учня створено · Student created ✓");
+      showCredentials(username, password, "Student created ✓");
     } catch (e) { $("#aerr").textContent = e.message; $("#acreate").disabled = false; }
   };
 }
@@ -986,11 +989,11 @@ function stageOf(s, st){
 }
 function drawClasses(s){
   const box = $("#classes"); if (!box) return;
-  if (!T.ledgerOK) { box.innerHTML = `<h3>Заняття · Classes</h3><p class="note">Run <b>supabase/migrate_2.sql</b> in Supabase to turn on class balances.</p>`; return; }
+  if (!T.ledgerOK) { box.innerHTML = `<h3>Classes</h3><p class="note">Run <b>supabase/migrate_2.sql</b> in Supabase to turn on class balances.</p>`; return; }
   const bal = balanceOf(s.id), rows = (T.ledger[s.id] || []).slice(0, 20);
-  box.innerHTML = `<h3>Заняття · Classes</h3>
+  box.innerHTML = `<h3>Classes</h3>
     <div class="balbig ${bal <= 3 ? "low" : ""}"><b>${bal}</b><span>${bal < 0 ? "classes owed" : "classes left"}</span></div>
-    <div class="row two"><button class="btn blue" id="held">✓ Заняття відбулося<br><small>Class held · −1</small></button><button class="btn ghost" id="pack">＋ Пакет<br><small>Package</small></button></div>
+    <div class="row two"><button class="btn blue" id="held">✓ Class held<br><small>−1 class</small></button><button class="btn ghost" id="pack">＋ Package<br><small>add classes</small></button></div>
     ${bal <= 3 ? `<div class="row"><button class="btn ghost small" id="remind">✉️ Send a reminder</button></div>` : ""}
     <div class="ledger">${rows.length ? rows.map(r => `<div class="lrow"><span class="ld">${String(r.created_at).slice(0, 10)}</span>
       <span class="lt">${r.kind === "class" ? "Class held" : r.kind === "package" ? `Package +${r.delta}` : `Correction ${r.delta > 0 ? "+" : ""}${r.delta}`}${r.amount ? " · " + money(r.amount) : ""}${r.note ? ` · <span class="note">${esc(r.note)}</span>` : ""}</span>
@@ -1018,9 +1021,9 @@ async function classHeld(s){
   const next = LESSONS.filter(l => !un.has(l.code)).slice(0, 3);
   const after = () => { closeModal(); renderStudent(); if (bal <= 3) openReminder(s); };
   if (!next.length) { toast(`Class recorded · ${bal} left`); return after(); }
-  openModal(`<h2>Заняття записано ✓</h2><p class="sub">Class recorded for ${esc(s.nickname)} · <b>${bal}</b> ${bal === 1 ? "class" : "classes"} left.</p>
+  openModal(`<h2>Class recorded ✓</h2><p class="sub">Class recorded for ${esc(s.nickname)} · <b>${bal}</b> ${bal === 1 ? "class" : "classes"} left.</p>
     <label class="f">Open the lessons you did today:</label>
-    ${next.map((l, i) => `<label class="toggle"><input type="checkbox" data-nl="${l.code}" ${i === 0 ? "checked" : ""}><span class="tt">${l.code} · ${esc(ST(l.ua))}<span>${esc(l.en)}</span></span></label>`).join("")}
+    ${next.map((l, i) => `<label class="toggle"><input type="checkbox" data-nl="${l.code}" ${i === 0 ? "checked" : ""}><span class="tt">${l.code} · ${esc(l.en)}<span>${esc(ST(l.ua))}</span></span></label>`).join("")}
     <div class="row two"><button class="btn ghost" id="nskip">Skip</button><button class="btn blue" id="nopen">Open</button></div>`);
   $("#nskip").onclick = after;
   $("#nopen").onclick = async () => {
@@ -1035,7 +1038,7 @@ async function classHeld(s){
 }
 function openPackage(s){
   const P = T.prices.packs || {};
-  openModal(`<h2>Новий пакет · New package</h2><p class="sub">for ${esc(s.nickname)}</p>
+  openModal(`<h2>New package</h2><p class="sub">for ${esc(s.nickname)}</p>
     <div class="seg">${PACKS.map(n => `<button data-n="${n}">${n === 1 ? "1 · single" : n}</button>`).join("")}</div>
     <label class="f" for="pn">Classes (a negative number corrects the balance)</label><input class="field" id="pn" type="number" inputmode="numeric" value="8">
     <label class="f" for="pa">Paid ${esc(T.prices.currency || "")}</label><input class="field" id="pa" type="number" inputmode="decimal" placeholder="optional">
@@ -1059,7 +1062,7 @@ function openReminder(s){
   const msg = n === 0
     ? `Привіт, ${s.nickname}! 🙂 Оплачені заняття в пакеті закінчилися. Щоб продовжити, можна поновити пакет.\nHi ${s.nickname}! Your package has no classes left. Let me know when you'd like to renew.`
     : `Привіт, ${s.nickname}! 🙂 У твоєму пакеті залишилось ${n} ${pl(n, "заняття", "заняття", "занять")}. Щоб продовжити без перерви, можна поновити пакет.\nHi ${s.nickname}! You have ${n} ${n === 1 ? "class" : "classes"} left in your package. Let me know when you'd like to renew.`;
-  openModal(`<h2>Нагадування · Reminder</h2><p class="sub">${esc(s.nickname)} has <b>${n}</b> ${n === 1 ? "class" : "classes"} left. Edit the message if you like, then send it in your messenger.</p>
+  openModal(`<h2>Reminder</h2><p class="sub">${esc(s.nickname)} has <b>${n}</b> ${n === 1 ? "class" : "classes"} left. Edit the message if you like, then send it in your messenger.</p>
     <textarea class="field" id="rmsg" rows="6">${esc(msg)}</textarea>
     <div class="row two"><button class="btn ghost" id="rcl">Close</button><button class="btn blue" id="rsend">Send…</button></div>`);
   $("#rcl").onclick = closeModal;
@@ -1072,7 +1075,7 @@ function openReminder(s){
 }
 function openPrices(){
   const P = T.prices.packs || {}, cur = T.prices.currency || "€";
-  openModal(`<h2>Ціни · Prices</h2><p class="sub">Used to fill in the amount when you add a package. You can still change it for each student.</p>
+  openModal(`<h2>Prices</h2><p class="sub">Used to fill in the amount when you add a package. You can still change it for each student.</p>
     <label class="f" for="pcur">Currency</label><input class="field" id="pcur" value="${esc(cur)}" maxlength="4" style="max-width:120px">
     <div class="ptable">${PACKS.map(n => `<div class="prow"><span class="pn">${n === 1 ? "Single class" : n + " classes"}</span>
       <input class="field" data-p="${n}" type="number" inputmode="decimal" value="${P[n] ?? ""}" placeholder="—"><span class="pper" id="pp${n}"></span></div>`).join("")}</div>
@@ -1101,23 +1104,23 @@ function renderStudent(){
     <h2 style="margin-bottom:2px">${esc(s.nickname)} <span class="note">@${esc(s.username)}</span></h2>
     <p class="sub">Last active ${ago(s.last_seen)} · ${st.level.toFixed(1)}% to ${st.goal} (whole book ${st.book.toFixed(1)}%) · ${st.due} words for today · ${st.learned} learned</p>
     <div class="grid2">
-      <div class="panel"><h3>Уроки · Lessons</h3><p class="note" style="margin-top:0">Tick a lesson after you've done it in class. Its games and words open in the student's app.</p>
+      <div class="panel"><h3>Lessons</h3><p class="note" style="margin-top:0">Tick a lesson after you've done it in class. Its games and words open in the student's app.</p>
         ${UNITS.filter(u => LESSONS.some(l => unitOf(l.code) === u.n)).map(u => { const ls = LESSONS.filter(l => unitOf(l.code) === u.n); const allOn = ls.every(l => st.un.has(l.code));
-          return `<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center"><b>${u.n === 0 ? "Вступ" : "Розділ " + u.n}</b>
+          return `<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center"><b>${u.n === 0 ? "Introduction" : "Unit " + u.n}</b>
             <button class="btn ghost small" data-unit="${u.n}" data-on="${allOn ? 0 : 1}">${allOn ? "Close all" : "Open all"}</button></div>
             ${ls.map(l => { const p = lessonPctFrom(st.pr, l.code); return `<label class="toggle"><input type="checkbox" data-l="${l.code}" ${st.un.has(l.code) ? "checked" : ""}>
-              <span class="tt">${l.code} · ${esc(ST(l.ua))}<span>${esc(l.en)}</span></span><span class="pc" style="color:${p >= 80 ? "var(--green)" : ""}">${p ? p + "%" : ""}</span></label>`; }).join("")}</div>`; }).join("")}
+              <span class="tt">${l.code} · ${esc(l.en)}<span>${esc(ST(l.ua))}</span></span><span class="pc" style="color:${p >= 80 ? "var(--green)" : ""}">${p ? p + "%" : ""}</span></label>`; }).join("")}</div>`; }).join("")}
         <p class="note">Units 2–12 appear here as their games are built.</p></div>
       <div>
         <div class="panel" id="classes"></div>
-        <div class="panel"><h3>Мова додатку · App language</h3>
+        <div class="panel"><h3>App language</h3>
           <p class="note" style="margin-top:0">Automatic: labels turn Ukrainian after the Intro at 100%, everything at A1 at 100%. Now: <b>${["bilingual", "labels in Ukrainian", "all Ukrainian"][stageOf(s, st)]}</b>${s.ui_choice === "bi" ? " (the student chose bilingual)" : ""}.</p>
           <select class="field" id="uiov">${[["", "Automatic"], ["0", "Bilingual"], ["1", "Labels in Ukrainian"], ["2", "All Ukrainian"]].map(([v, t]) =>
             `<option value="${v}" ${String(s.ui_override ?? "") === v ? "selected" : ""}>${t}</option>`).join("")}</select></div>
-        <div class="panel"><h3>Слова · Word memory</h3><p class="note" style="margin-top:0">How many words sit in each review box (0 = new, 6 = long-term).</p>
+        <div class="panel"><h3>Word memory</h3><p class="note" style="margin-top:0">How many words sit in each review box (0 = new, 6 = long-term).</p>
           <div class="bars">${boxes.map((n,b) => `<div style="height:${n / maxB * 100}%" title="${n} words"><span>${b}</span></div>`).join("")}</div><div style="height:18px"></div></div>
-        <div class="panel"><h3>Найважчі слова · Hardest words</h3>${weak.length ? weak.map(x => `<div class="toggle"><span class="tt">${esc(ST(x.w.ua))}<span>${esc(x.w.en)} · lesson ${x.w.lesson}</span></span><span class="pc">${x.c.lapses}× wrong</span></div>`).join("") : `<p class="note">No mistakes yet.</p>`}</div>
-        <div class="panel"><h3>Акаунт · Account</h3>
+        <div class="panel"><h3>Hardest words</h3>${weak.length ? weak.map(x => `<div class="toggle"><span class="tt">${esc(ST(x.w.ua))}<span>${esc(x.w.en)} · lesson ${x.w.lesson}</span></span><span class="pc">${x.c.lapses}× wrong</span></div>`).join("") : `<p class="note">No mistakes yet.</p>`}</div>
+        <div class="panel"><h3>Account</h3>
           <div class="row"><button class="btn ghost" id="rp">Reset password</button><button class="btn danger" id="del">Delete student</button></div></div>
       </div>
     </div>`;
