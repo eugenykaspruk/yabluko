@@ -905,7 +905,7 @@ async function loadTeacher(){
   T.ledgerOK = !lg.error; T.ledger = {};
   if (!lg.error) for (const r of lg.data) (T.ledger[r.student_id] ||= []).push(r);
   const saved = !pr.error && pr.data && pr.data.value;
-  T.prices = saved && saved.v === 3 ? { ...DEFAULT_PRICES, ...saved } : { ...DEFAULT_PRICES };   // older saved prices were placeholders
+  T.prices = saved && saved.v >= 3 ? { ...DEFAULT_PRICES, ...saved, packs: { ...DEFAULT_PRICES.packs, ...saved.packs }, months: { ...DEFAULT_PRICES.months, ...saved.months } } : { ...DEFAULT_PRICES };   // older saved prices were placeholders
   // package expiry (supabase/migrate_3.sql) and founding students (stored with the settings, no migration needed)
   const [ex, fd, rg] = await Promise.all([
     sb.from("ledger").select("expires_on").limit(1),
@@ -916,10 +916,10 @@ async function loadTeacher(){
   T.founding = (!fd.error && fd.data && fd.data.value) || {};
   T.regions = (!rg.error && rg.data && rg.data.value) || {};
 }
-// Decisions doc (13 Nov 2026): single $20 · 8 for $136 (3 months) · 16 for $256 (6 months) · pair $14 per person · founding −15% for 6 months.
+// Decisions doc (13 Nov 2026): single $20 · 4 for $72 (2 months) · 8 for $136 (3 months) · 16 for $256 (6 months) · pair $14 per person · founding −15% for 6 months.
 // The 32-class package is on hold until there's more content: add 32 back here and in DEFAULT_PRICES.
-const PACKS = [1, 8, 16];
-const DEFAULT_PRICES = { v: 3, currency: "$", packs: { 1: 20, 8: 136, 16: 256 }, pair: 14, months: { 8: 3, 16: 6 }, founding: 15, foundingMonths: 6 };
+const PACKS = [1, 4, 8, 16];
+const DEFAULT_PRICES = { v: 3, currency: "$", packs: { 1: 20, 4: 72, 8: 136, 16: 256 }, pair: 14, months: { 4: 2, 8: 3, 16: 6 }, founding: 15, foundingMonths: 6 };
 const plusDays = (d, n) => { const x = new Date(d + "T12:00:00"); x.setDate(x.getDate() + n); return fmt(x); };
 const plusMonths = (d, n) => { const x = new Date(d + "T12:00:00"); x.setMonth(x.getMonth() + n); return fmt(x); };
 const lastPackage = id => (T.ledger[id] || []).find(r => r.kind === "package" && r.expires_on);
