@@ -239,18 +239,22 @@ window.addEventListener("hashchange", () => { if (me) openFromHash(); });
    ===================================================================== */
 // The bar shows one level at a time: Intro + Units 1–6 lead to A1. Once the teacher opens
 // any Unit 7 lesson it restarts for Units 7–12 (A2). All earlier progress stays saved.
-function levelInfo(){
-  const a2 = [...unlocked].some(c => unitOf(c) >= 7);
+function levelInfo(un = unlocked){
+  const a2 = [...un].some(c => unitOf(c) >= 7);
   const ls = LESSONS.filter(l => a2 ? unitOf(l.code) >= 7 : unitOf(l.code) <= 6);
-  return { goal: a2 ? "A2" : "A1", ls };
+  return { goal: a2 ? "A2" : "A1", ls, N: a2 ? BOOK_TOTAL - A1_MARK : A1_MARK };
+}
+function levelPctFrom(p, un){
+  const { goal, ls, N } = levelInfo(un);
+  return { goal, pct: ls.reduce((s, l) => s + lessonPctFrom(p, l.code), 0) / N };
 }
 function bookBar(){
-  const { goal, ls } = levelInfo(), N = goal === "A1" ? A1_MARK : BOOK_TOTAL - A1_MARK; // all lessons of the level, built or not
+  const { goal, ls, N } = levelInfo(); // N = all lessons of the level, built or not
   const pct = ls.reduce((s, l) => s + lessonPct(l.code), 0) / N;
   const opened = ls.filter(l => unlocked.has(l.code)).length;
   const done = ls.filter(l => lessonPct(l.code) >= 80).length;
   return `<div class="book">
-      <div class="lbl"><span>Прогрес · до ${goal}</span><span><b>${pct < 1 && pct > 0 ? pct.toFixed(1) : Math.round(pct)}%</b> · ${done} / ${N} lessons done</span></div>
+      <div class="lbl"><span>Прогрес · Progress</span><span><b>${pct < 1 && pct > 0 ? pct.toFixed(1) : Math.round(pct)}%</b> · ${done} / ${N} lessons done</span></div>
       <div class="bbar"><div class="open" style="width:${opened / N * 100}%"></div><i style="width:${pct}%"></i>
         <div class="mark" style="left:100%"><span>${goal}</span></div></div>
       <div class="legend2"><span><i style="background:var(--blue)"></i>practised</span><span><i class="op"></i>opened by your teacher (${opened})</span></div>
@@ -263,12 +267,12 @@ function render(){
   const inSession = rs.view !== "menu";
   $("#app").innerHTML = `
     <div class="head">
-      <div><h1>Привіт, ${esc(me.nickname)}!</h1><p class="sub" style="margin:0">${isTeacher() ? "Teacher preview · nothing here is saved" : "Українська · Яблуко"}</p></div>
+      <div><h1>Привіт, ${esc(me.nickname)}!</h1>${isTeacher() ? `<p class="sub" style="margin:0">Teacher preview · nothing here is saved</p>` : ""}</div>
       <div class="who">${isTeacher() ? `<button class="chip" id="toT">👩‍🏫 Учні</button>` : ""}<button class="chip" id="settings" aria-label="Settings">⚙️</button></div>
     </div>
     ${inSession || view.tab === "lesson" || view.tab === "list" || view.tab === "lessons" ? "" : bookBar()}
     <section id="main"></section>`;
-  $("#settings").onclick = openSettings;
+  $("#settings").onclick = () => openSettings();
   if ($("#toT")) $("#toT").onclick = () => { view = { tab: "students" }; render(); };
   if (inSession) renderReview();
   else if (view.tab === "lesson") renderLesson();
@@ -290,7 +294,7 @@ function renderHome(){
   let today;
   if (!d.length) today = `<div class="today empty-t"><div><b>Ще немає слів</b><span>Words appear after your first class.</span></div></div>`;
   else if (n) today = `<button class="today" id="start"><span class="tnum">${n}</span><span class="tlbl">на сьогодні<small>words today</small></span><span class="tgo">Почати ▶</span></button>`;
-  else today = `<div class="today done-t"><span class="tnum">✓</span><span class="tlbl">На сьогодні все<small>All done for today</small></span>${met >= 4 ? `<button class="btn small ghost" id="extra">Ще трохи · A bit more</button>` : ""}</div>`;
+  else today = `<div class="today done-t"><span class="tnum">✓</span><span class="tlbl">Усе на сьогодні<small>All done today</small></span>${met >= 4 ? `<button class="more-btn" id="extra">Ще трохи<small>A bit more</small></button>` : ""}</div>`;
   el.innerHTML = today + `
     <h3 class="sec">Уроки <small>Lessons</small></h3>
     <div class="lessons">${open.slice(0, 3).map(lessonRow).join("")}
@@ -333,40 +337,59 @@ function setTheme(t){
   try { t === "auto" ? localStorage.removeItem("theme") : localStorage.setItem("theme", t); } catch(e){}
   if (t === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = t;
 }
-function openSettings(){
-  const th = getTheme();
-  openModal(`<h2>Налаштування · Settings</h2>
-    <p class="sub">Login name: <b>${esc(me.username)}</b></p>
-    <label class="f">Тема · Theme</label>
-    <div class="seg" id="theme">${[["auto","Авто · Auto"],["light","☀️ Світла"],["dark","🌙 Темна"]].map(([k,t]) => `<button data-t="${k}" class="${th === k ? "on" : ""}">${t}</button>`).join("")}</div>
-    <label class="f" for="nn">Нікнейм · Nickname</label>
-    <input class="field" id="nn" value="${esc(me.nickname)}" maxlength="40">
-    <div class="row"><button class="btn ghost" id="saveNick">Зберегти нікнейм · Save nickname</button></div>
-    <label class="f" for="np1" style="margin-top:22px">Новий пароль · New password</label>
-    <input class="field" id="np1" type="password" autocomplete="new-password" placeholder="at least 8 characters">
-    <label class="f" for="np2">Ще раз · Repeat</label>
-    <input class="field" id="np2" type="password" autocomplete="new-password">
-    <div class="err" id="serr"></div>
-    <div class="row"><button class="btn ghost" id="savePw">Змінити пароль · Change password</button></div>
-    <div class="row two" style="margin-top:22px"><button class="btn danger" id="logout">Вийти · Log out</button><button class="btn" id="closeS">Готово · Done</button></div>`);
-  $("#closeS").onclick = closeModal;
-  $("#theme").querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
-    setTheme(b.dataset.t); $("#theme").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); });
-  $("#logout").onclick = async () => { closeModal(); await sb.auth.signOut(); };
-  $("#saveNick").onclick = async () => {
-    const n = $("#nn").value.trim(); if (!n) return;
-    const { error } = await sb.from("profiles").update({ nickname: n }).eq("id", me.id);
-    if (error) { $("#serr").textContent = error.message; return; }
-    me.nickname = n; toast("Збережено · Saved"); closeModal(); render();
-  };
-  $("#savePw").onclick = async () => {
-    const a = $("#np1").value, b = $("#np2").value;
-    if (a.length < 8) { $("#serr").textContent = "At least 8 characters, please."; return; }
-    if (a !== b) { $("#serr").textContent = "The two passwords don't match."; return; }
-    const { error } = await sb.auth.updateUser({ password: a });
-    if (error) { $("#serr").textContent = error.message; return; }
-    toast("Пароль змінено · Password changed"); closeModal();
-  };
+function openSettings(page){
+  const back = `<button class="setback" id="sback">← Налаштування · Settings</button>`;
+  if (!page) {
+    const th = { auto: "Авто · Auto", light: "Світла · Light", dark: "Темна · Dark" }[getTheme()];
+    openModal(`<h2>Налаштування · Settings</h2>
+      <p class="sub">Login name: <b>${esc(me.username)}</b></p>
+      <div class="setlist">
+        <button class="setrow" data-p="theme"><span class="si">🎨</span><span class="st">Тема<small>Theme</small></span><span class="sv">${th}</span><span class="sa">›</span></button>
+        <button class="setrow" data-p="nick"><span class="si">🙂</span><span class="st">Нікнейм<small>Nickname</small></span><span class="sv">${esc(me.nickname)}</span><span class="sa">›</span></button>
+        <button class="setrow" data-p="pw"><span class="si">🔑</span><span class="st">Пароль<small>Password</small></span><span class="sv">••••••••</span><span class="sa">›</span></button>
+      </div>
+      <div class="row two" style="margin-top:22px"><button class="btn danger" id="logout">Вийти · Log out</button><button class="btn" id="closeS">Готово · Done</button></div>`);
+    $("#sheet").querySelectorAll("[data-p]").forEach(b => b.onclick = () => openSettings(b.dataset.p));
+    $("#closeS").onclick = closeModal;
+    $("#logout").onclick = async () => { closeModal(); await sb.auth.signOut(); };
+    return;
+  }
+  if (page === "theme") {
+    const th = getTheme();
+    openModal(back + `<h2>Тема · Theme</h2>
+      <div class="setlist" id="theme">${[["auto","🌗","Авто","Follows your phone"],["light","☀️","Світла","Light"],["dark","🌙","Темна","Dark"]].map(([k,i,t,e]) =>
+        `<button class="setrow ${th === k ? "on" : ""}" data-t="${k}"><span class="si">${i}</span><span class="st">${t}<small>${e}</small></span><span class="sa">${th === k ? "✓" : ""}</span></button>`).join("")}</div>`);
+    $("#theme").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { setTheme(b.dataset.t); openSettings("theme"); });
+  } else if (page === "nick") {
+    openModal(back + `<h2>Нікнейм · Nickname</h2>
+      <p class="sub">This is the name the app greets you with.</p>
+      <input class="field" id="nn" value="${esc(me.nickname)}" maxlength="40">
+      <div class="err" id="serr"></div>
+      <div class="row"><button class="btn blue" id="saveNick">Зберегти · Save</button></div>`);
+    $("#saveNick").onclick = async () => {
+      const n = $("#nn").value.trim(); if (!n) return;
+      const { error } = await sb.from("profiles").update({ nickname: n }).eq("id", me.id);
+      if (error) { $("#serr").textContent = error.message; return; }
+      me.nickname = n; toast("Збережено · Saved"); render(); openSettings();
+    };
+  } else if (page === "pw") {
+    openModal(back + `<h2>Пароль · Password</h2>
+      <label class="f" for="np1">Новий пароль · New password</label>
+      <input class="field" id="np1" type="password" autocomplete="new-password" placeholder="at least 8 characters">
+      <label class="f" for="np2">Ще раз · Repeat</label>
+      <input class="field" id="np2" type="password" autocomplete="new-password">
+      <div class="err" id="serr"></div>
+      <div class="row"><button class="btn blue" id="savePw">Змінити пароль · Change password</button></div>`);
+    $("#savePw").onclick = async () => {
+      const a = $("#np1").value, b = $("#np2").value;
+      if (a.length < 8) { $("#serr").textContent = "At least 8 characters, please."; return; }
+      if (a !== b) { $("#serr").textContent = "The two passwords don't match."; return; }
+      const { error } = await sb.auth.updateUser({ password: a });
+      if (error) { $("#serr").textContent = error.message; return; }
+      toast("Пароль змінено · Password changed"); openSettings();
+    };
+  }
+  $("#sback").onclick = () => openSettings();
 }
 
 /* =====================================================================
@@ -710,7 +733,8 @@ function studentStats(s){
   const words = WORDS.filter(w => un.has(w.lesson) && w.review);
   const tq = todayQueueFrom(words, cs), due = tq.due.length + tq.fresh.length;
   const learned = words.filter(w => (cs.get(w.id)?.box || 0) >= 3).length;
-  return { un, pr, cs, words, due, learned, book: bookPctFrom(pr) };
+  const lv = levelPctFrom(pr, un);
+  return { un, pr, cs, words, due, learned, book: bookPctFrom(pr), level: lv.pct, goal: lv.goal };
 }
 function ago(ts){
   if (!ts) return "never";
@@ -721,7 +745,7 @@ async function renderTeacher(){
   $("#app").innerHTML = `<div class="head"><div><h1>Учні · Students</h1><p class="sub" style="margin:0">Hi ${esc(me.nickname)} · teacher</p></div>
     <div class="who"><button class="chip" id="toP">🍏 Practice</button><button class="chip" id="settings">⚙️</button></div></div><div id="tmain"><p class="status">Завантаження…</p></div>`;
   $("#toP").onclick = () => { view = { tab: "home" }; rs = { view: "menu" }; render(); };
-  $("#settings").onclick = openSettings;
+  $("#settings").onclick = () => openSettings();
   try { await loadTeacher(); } catch (e) { $("#tmain").innerHTML = `<p class="status">Couldn't load students: ${esc(e.message || e)}</p>`; return; }
   if (view.tab === "student" && T.students.find(s => s.id === view.id)) return renderStudent();
   renderStudentList();
@@ -732,7 +756,7 @@ function renderStudentList(){
     <div class="tlist">${T.students.length ? T.students.map(s => { const st = studentStats(s);
       return `<button class="trow" data-s="${s.id}"><div><b>${esc(s.nickname)}</b> <span class="note">@${esc(s.username)}</span>
         <div class="m2">Last active: ${ago(s.last_seen)} · ${st.un.size} lessons open</div></div>
-        <div class="nums"><div><b>${st.book.toFixed(1)}%</b>book</div><div><b>${st.due}</b>today</div><div><b>${st.learned}</b>learned</div></div></button>`; }).join("")
+        <div class="nums"><div><b>${st.level.toFixed(1)}%</b>to ${st.goal}</div><div><b>${st.due}</b>today</div><div><b>${st.learned}</b>learned</div></div></button>`; }).join("")
       : `<div class="empty"><div class="big">No students yet</div>Create your first student above.</div>`}</div>`;
   $("#add").onclick = openAddStudent;
   document.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { view = { tab: "student", id: b.dataset.s }; renderStudent(); });
@@ -796,7 +820,7 @@ function renderStudent(){
   const maxB = Math.max(1, ...boxes);
   $("#tmain").innerHTML = `<div class="top" style="margin-top:14px"><button id="tb">← All students</button><span></span><span></span></div>
     <h2 style="margin-bottom:2px">${esc(s.nickname)} <span class="note">@${esc(s.username)}</span></h2>
-    <p class="sub">Last active ${ago(s.last_seen)} · book ${st.book.toFixed(1)}% · ${st.due} words for today · ${st.learned} learned</p>
+    <p class="sub">Last active ${ago(s.last_seen)} · ${st.level.toFixed(1)}% to ${st.goal} (whole book ${st.book.toFixed(1)}%) · ${st.due} words for today · ${st.learned} learned</p>
     <div class="grid2">
       <div class="panel"><h3>Уроки · Lessons</h3><p class="note" style="margin-top:0">Tick a lesson after you've done it in class. Its games and words open in the student's app.</p>
         ${UNITS.filter(u => LESSONS.some(l => unitOf(l.code) === u.n)).map(u => { const ls = LESSONS.filter(l => unitOf(l.code) === u.n); const allOn = ls.every(l => st.un.has(l.code));

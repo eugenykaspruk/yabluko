@@ -229,3 +229,29 @@ h3.sec small{font-family:"Noto Sans",sans-serif;font-size:13px;font-weight:500;c
 .seg{display:flex;gap:6px;margin-bottom:18px}
 .seg button{flex:1;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 6px;font-size:13px;font-weight:600}
 .seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* compact "all done" card */
+.today.done-t{padding:14px 16px;gap:12px}
+.today.done-t .tnum{font-size:30px;min-width:0}
+.today.done-t .tlbl{font-size:15px;white-space:nowrap}
+.today.done-t .tlbl small{font-size:12px}
+.more-btn{margin-left:auto;border:1px solid var(--line);background:var(--soft);border-radius:12px;padding:8px 12px;font-weight:700;font-size:14px;white-space:nowrap;text-align:center}
+.more-btn small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
+
+/* settings */
+.sheet h2{margin-bottom:6px}
+.sheet label.f{font-size:14px;color:var(--ink);margin:16px 0 6px}
+.sheet .field{background:var(--soft);border-color:var(--line)}
+.setlist{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:6px}
+.setrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:14px 16px}
+.setrow:last-child{border-bottom:0}
+.setrow:active,.setrow:hover{background:var(--soft)}
+.setrow .si{font-size:20px;width:26px;text-align:center}
+.setrow .st{flex:1;font-weight:600;font-size:16px}
+.setrow .st small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.setrow .sv{color:var(--muted);font-size:14px;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setrow .sa{color:var(--muted);font-size:20px;min-width:14px;text-align:right}
+.setrow.on .sa{color:var(--green);font-weight:700}
+.setback{border:0;background:none;color:var(--blue);font-weight:600;font-size:14px;padding:0 0 12px}
+:root[data-theme="dark"] .setback{color:#7fa8ff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .setback{color:#7fa8ff}}
