@@ -293,3 +293,11 @@ textarea.field{width:100%;padding:12px 14px;border-radius:12px;border:1px solid 
 .nextl .tt{flex:1;font-weight:600;font-size:14px}
 .nextl .tt span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
 .lrow .ld{min-width:150px}
+/* package end dates and founding students */
+.exp{color:var(--muted);font-weight:600}
+.exp.soon{color:var(--orange)}
+.exp.bad{color:var(--red)}
+.founding{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.founding .linkbtn{margin:0}
+.fchip{background:var(--yellow-soft);border:1px solid var(--yellow);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600}
+.prow.sub2 .pn{color:var(--muted);font-size:13px;padding-left:12px}

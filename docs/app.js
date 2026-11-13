@@ -1,5 +1,5 @@
 /* =====================================================================
-   Яблуко · practice app
+   Ucranización · Práctica / Practice
    Students: daily spaced repetition (like "Mein Wortschatz") + lesson games
    for the lessons the teacher has unlocked. Teacher: students, unlocks, progress.
    ===================================================================== */
@@ -223,9 +223,9 @@ function wireSpeak(root){ root.querySelectorAll("[data-say]").forEach(b => b.onc
 function renderLogin(msg){
   $("#app").className = "wrap";
   $("#app").innerHTML = `<div class="login">
-    <div class="logo">🍏</div>
-    <h1 style="text-align:center">Яблуко</h1>
-    <p class="sub" style="text-align:center">Українська · практика</p>
+    <div class="logo">🇺🇦</div>
+    <h1 style="text-align:center">Ucranización</h1>
+    <p class="sub" style="text-align:center">Práctica · Practice</p>
     <form id="lf">
       <label class="f" for="lu">Логін · Username</label>
       <input class="field" id="lu" autocomplete="username" autocapitalize="off" spellcheck="false" required>
@@ -309,12 +309,23 @@ function congratulate(stage){
   $("#cok").onclick = closeModal;
 }
 let BAL = null;   // classes left, null until the database has the class balance
+let BEXP = null;  // last package valid until (YYYY-MM-DD), needs supabase/migrate_3.sql
 async function loadBalance(){
   if (!me || isTeacher()) return;
+  const r = await sb.rpc("my_package");
+  if (!r.error && r.data) { BAL = r.data.balance; BEXP = r.data.expires_on || null; return; }
   const { data, error } = await sb.rpc("my_balance");
   BAL = error ? null : data;
 }
+const dmy = d => new Date(d + "T12:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+const daysTo = d => Math.round((new Date(d + "T12:00:00") - new Date(today() + "T12:00:00")) / 864e5);
 function balanceBanner(){
+  if (BAL !== null && BAL > 0 && BEXP && daysTo(BEXP) <= 7) {
+    const d = dmy(BEXP), left = daysTo(BEXP);
+    return left < 0
+      ? `<div class="balbar zero">${I2(`Термін пакета минув ${d}. Напиши вчителю`, `Your package expired on ${d}. Message your teacher`)}</div>`
+      : `<div class="balbar">${I2(`Пакет діє до ${d}: залишилось ${BAL} ${pl(BAL, "заняття", "заняття", "занять")}`, `Your package is valid until ${d}: ${BAL} ${BAL === 1 ? "class" : "classes"} left`)}</div>`;
+  }
   if (BAL === null || BAL > 3) return "";
   const n = Math.max(0, BAL);
   return n === 0
@@ -893,9 +904,36 @@ async function loadTeacher(){
   ]);
   T.ledgerOK = !lg.error; T.ledger = {};
   if (!lg.error) for (const r of lg.data) (T.ledger[r.student_id] ||= []).push(r);
-  T.prices = (!pr.error && pr.data && pr.data.value) || { currency: "€", packs: {} };
+  const saved = !pr.error && pr.data && pr.data.value;
+  T.prices = saved && saved.v === 2 ? { ...DEFAULT_PRICES, ...saved } : { ...DEFAULT_PRICES };   // older saved prices were placeholders
+  // package expiry (supabase/migrate_3.sql) and founding students (stored with the settings, no migration needed)
+  const [ex, fd] = await Promise.all([
+    sb.from("ledger").select("expires_on").limit(1),
+    sb.from("app_settings").select("value").eq("key", "founding").maybeSingle(),
+  ]);
+  T.expiryOK = T.ledgerOK && !ex.error;
+  T.founding = (!fd.error && fd.data && fd.data.value) || {};
 }
-const PACKS = [1, 4, 8, 16, 32];
+// Decisions doc (13 Nov 2026): single $20 · 8 for $136 (6 weeks) · 16 for $256 (12 weeks) · pair $14 per person · founding −15% for 6 months.
+// The 32-class package is on hold until there's more content: add 32 back here and in DEFAULT_PRICES.
+const PACKS = [1, 8, 16];
+const DEFAULT_PRICES = { v: 2, currency: "$", packs: { 1: 20, 8: 136, 16: 256 }, pair: 14, weeks: { 8: 6, 16: 12 }, founding: 15, foundingMonths: 6 };
+const plusDays = (d, n) => { const x = new Date(d + "T12:00:00"); x.setDate(x.getDate() + n); return fmt(x); };
+const plusMonths = (d, n) => { const x = new Date(d + "T12:00:00"); x.setMonth(x.getMonth() + n); return fmt(x); };
+const lastPackage = id => (T.ledger[id] || []).find(r => r.kind === "package" && r.expires_on);
+const foundingUntil = id => { const d = T.founding[id]; return d && daysTo(d) >= 0 ? d : null; };
+function expiryNote(id){   // "valid until …" for the latest package, while classes are left
+  const p = lastPackage(id); if (!p || balanceOf(id) <= 0) return "";
+  const n = daysTo(p.expires_on);
+  return n < 0 ? `<span class="exp bad">expired ${dmy(p.expires_on)}</span>`
+       : n <= 7 ? `<span class="exp soon">valid until ${dmy(p.expires_on)} (${n} ${n === 1 ? "day" : "days"})</span>`
+       : `<span class="exp">valid until ${dmy(p.expires_on)}</span>`;
+}
+async function saveFounding(){
+  const { error } = await sb.from("app_settings").upsert({ key: "founding", value: T.founding, updated_at: new Date().toISOString() });
+  if (error) toast("Couldn't save: " + error.message);
+  return !error;
+}
 const balanceOf = id => (T.ledger[id] || []).reduce((s, r) => s + r.delta, 0);
 const money = v => v === null || v === undefined || v === "" ? "" : `${T.prices.currency || ""}${Number(v).toLocaleString()}`;
 function monthSummary(){
@@ -920,7 +958,7 @@ function ago(ts){
 async function renderTeacher(){
   EN = true;
   $("#app").innerHTML = `<div class="head"><div><h1>Students</h1><p class="sub" style="margin:0">Hi ${esc(me.nickname)} · teacher</p></div>
-    <div class="who"><button class="chip" id="prices">💶 Prices</button><button class="chip" id="toP">🍏 Practice</button><button class="chip" id="settings">⚙️</button></div></div><div id="tmain"><p class="status">Завантаження…</p></div>`;
+    <div class="who"><button class="chip" id="prices">💶 Prices</button><button class="chip" id="toP">📚 Practice</button><button class="chip" id="settings">⚙️</button></div></div><div id="tmain"><p class="status">Завантаження…</p></div>`;
   $("#toP").onclick = () => { view = { tab: "home" }; rs = { view: "menu" }; render(); };
   $("#prices").onclick = () => T ? openPrices() : null;
   $("#settings").onclick = () => openSettings();
@@ -936,14 +974,14 @@ function renderStudentList(){
          : `<p class="note" style="margin:-4px 0 12px">Class balances are off until you run <b>supabase/migrate_2.sql</b> in Supabase.</p>`}
     <div class="tlist">${T.students.length ? T.students.map(s => { const st = studentStats(s);
       return `<button class="trow" data-s="${s.id}"><div><b>${esc(s.nickname)}</b> <span class="note">@${esc(s.username)}</span>
-        <div class="m2">Last active: ${ago(s.last_seen)} · ${st.un.size} lessons open</div></div>
+        <div class="m2">Last active: ${ago(s.last_seen)} · ${st.un.size} lessons open${foundingUntil(s.id) ? " · ⭐ founding" : ""}${T.ledgerOK && expiryNote(s.id).includes("exp ") ? " · " + expiryNote(s.id) : ""}</div></div>
         <div class="nums">${T.ledgerOK ? `<div class="${balanceOf(s.id) <= 3 ? "lowbal" : ""}"><b>${balanceOf(s.id)}</b>classes</div>` : ""}<div><b>${st.level.toFixed(1)}%</b>to ${st.goal}</div><div><b>${st.due}</b>today</div><div><b>${st.learned}</b>learned</div></div></button>`; }).join("")
       : `<div class="empty"><div class="big">No students yet</div>Create your first student above.</div>`}</div>`;
   $("#add").onclick = openAddStudent;
   document.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { view = { tab: "student", id: b.dataset.s }; renderStudent(); });
 }
 function genPassword(){
-  const latin = ["yabluko","kit","sontse","more","dim","lito","zyma","sad","myr","kava","chai","dub","les","vovk"];
+  const latin = ["kalyna","kit","sontse","more","dim","lito","zyma","sad","myr","kava","chai","dub","les","vovk"];
   const pick = a => a[Math.floor(Math.random() * a.length)];
   return `${pick(latin)}-${pick(latin)}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
@@ -953,7 +991,7 @@ async function callAdmin(body){
   return data;
 }
 function credText(username, password){
-  return `Яблуко · Ukrainian practice\n${location.origin + location.pathname}\n\nLogin: ${username}\nPassword: ${password}\n\nYou can change your nickname and password in ⚙️ after logging in.`;
+  return `Ucranización · Práctica / Practice\n${location.origin + location.pathname}\n\nLogin: ${username}\nPassword: ${password}\n\nYou can change your nickname and password in ⚙️ after logging in.`;
 }
 function showCredentials(username, password, title){
   const txt = credText(username, password);
@@ -1005,7 +1043,7 @@ function stageOf(s, st){
 const stamp = t => new Date(t).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 function ledgerRows(rows){
   return rows.map(r => `<div class="lrow"><span class="ld">${stamp(r.created_at)}</span>
-      <span class="lt">${r.kind === "class" ? "Class held" : r.kind === "package" ? `Package +${r.delta}` : `Correction ${r.delta > 0 ? "+" : ""}${r.delta}`}${r.amount ? " · " + money(r.amount) : ""}${r.note ? ` · <span class="note">${esc(r.note)}</span>` : ""}</span>
+      <span class="lt">${r.kind === "class" ? "Class held" : r.kind === "package" ? `Package +${r.delta}${r.expires_on ? ` · valid until ${dmy(r.expires_on)}` : ""}` : `Correction ${r.delta > 0 ? "+" : ""}${r.delta}`}${r.amount ? " · " + money(r.amount) : ""}${r.note ? ` · <span class="note">${esc(r.note)}</span>` : ""}</span>
       <span class="lv ${r.delta < 0 ? "neg" : "pos"}">${r.delta > 0 ? "+" : ""}${r.delta}</span><button class="lx" data-del="${r.id}" title="Delete">✕</button></div>`).join("");
 }
 function wireLedgerDelete(s, root, redraw){
@@ -1022,12 +1060,24 @@ function drawClasses(s){
   const bal = balanceOf(s.id), all = T.ledger[s.id] || [];
   box.innerHTML = `<h3>Classes</h3>
     <div class="balbig ${bal <= 3 ? "low" : ""}"><b>${bal}</b><span>${bal < 0 ? "classes owed" : bal === 1 ? "class left" : "classes left"}</span></div>
+    ${expiryNote(s.id) ? `<p class="note" style="margin:-6px 0 10px">${expiryNote(s.id)}</p>` : ""}
+    <div class="founding">${foundingUntil(s.id)
+      ? `<span class="fchip">⭐ Founding price −${T.prices.founding}% until ${dmy(foundingUntil(s.id))}</span><button class="linkbtn" id="funset">Remove</button>`
+      : `<button class="linkbtn" id="fset">⭐ Mark as founding student (−${T.prices.founding}% for ${T.prices.foundingMonths} months)</button>`}</div>
     <div class="row two"><button class="btn blue" id="held">✓ Class held<br><small>−1 class</small></button><button class="btn ghost" id="pack">＋ Package<br><small>add classes</small></button></div>
     ${bal <= 3 ? `<div class="row"><button class="btn ghost small" id="remind">✉️ Send a reminder</button></div>` : ""}
     ${all.length ? `<div class="ledger">${ledgerRows(all.slice(0, 3))}</div>
       <button class="linkbtn" id="hist">Full history (${all.length}) →</button>` : `<p class="note">No packages or classes yet.</p>`}`;
   $("#held").onclick = () => classHeld(s);
   $("#pack").onclick = () => openPackage(s);
+  if ($("#fset")) $("#fset").onclick = async () => {
+    T.founding[s.id] = plusMonths(today(), T.prices.foundingMonths);
+    if (await saveFounding()) { toast(`Founding price until ${dmy(T.founding[s.id])}`); drawClasses(s); } else delete T.founding[s.id];
+  };
+  if ($("#funset")) $("#funset").onclick = async () => {
+    const was = T.founding[s.id]; delete T.founding[s.id];
+    if (await saveFounding()) { toast("Founding price removed"); drawClasses(s); } else T.founding[s.id] = was;
+  };
   if ($("#remind")) $("#remind").onclick = () => openReminder(s);
   if ($("#hist")) $("#hist").onclick = () => { view = { tab: "student", id: s.id, sub: "history" }; renderStudent(); window.scrollTo(0, 0); };
   wireLedgerDelete(s, box, () => drawClasses(s));
@@ -1060,23 +1110,42 @@ async function classHeld(s){
   };
 }
 function openPackage(s){
-  const P = T.prices.packs || {};
+  const P = T.prices.packs || {}, W = T.prices.weeks || {}, fu = foundingUntil(s.id), cur = T.prices.currency || "";
   openModal(`<h2>New package</h2><p class="sub">for ${esc(s.nickname)}</p>
     <div class="seg">${PACKS.map(n => `<button data-n="${n}">${n === 1 ? "1 · single" : n}</button>`).join("")}</div>
+    <label class="toggle"><input type="checkbox" id="ppair"><span class="tt">Pair lesson<span>${money(T.prices.pair)} per person per class</span></span></label>
+    ${fu ? `<label class="toggle"><input type="checkbox" id="pfound" checked><span class="tt">⭐ Founding price −${T.prices.founding}%<span>until ${dmy(fu)}</span></span></label>` : ""}
     <label class="f" for="pn">Classes (a negative number corrects the balance)</label><input class="field" id="pn" type="number" inputmode="numeric" value="8">
-    <label class="f" for="pa">Paid ${esc(T.prices.currency || "")}</label><input class="field" id="pa" type="number" inputmode="decimal" placeholder="optional">
+    <label class="f" for="pa">Paid ${esc(cur)}</label><input class="field" id="pa" type="number" inputmode="decimal" placeholder="optional">
+    ${T.expiryOK ? `<label class="f" for="pe">Valid until</label><input class="field" id="pe" type="date"><div class="hint2">Empty = no end date.</div>`
+                 : `<p class="note">Run <b>supabase/migrate_3.sql</b> in Supabase to save package end dates.</p>`}
     <label class="f" for="pnote">Note</label><input class="field" id="pnote" placeholder="optional, e.g. bank transfer">
     <div class="err" id="perr"></div>
     <div class="row two"><button class="btn ghost" id="pc">Cancel</button><button class="btn blue" id="pok">Add</button></div>`);
-  const pick = n => { $("#pn").value = n; $("#pa").value = P[n] ?? "";
-    document.querySelectorAll("[data-n]").forEach(b => b.classList.toggle("on", +b.dataset.n === n)); };
+  let n = 8;
+  const price = () => {
+    const pair = $("#ppair").checked, found = $("#pfound") && $("#pfound").checked;
+    let v = pair ? (T.prices.pair || 0) * n : P[n] ?? (P[1] ? P[1] * n : null);
+    if (v !== null && found) v = Math.round(v * (100 - T.prices.founding)) / 100;
+    $("#pa").value = v ?? "";
+  };
+  const pick = k => { n = k; $("#pn").value = k; price();
+    if ($("#pe")) $("#pe").value = W[k] ? plusDays(today(), W[k] * 7) : "";
+    document.querySelectorAll("[data-n]").forEach(b => b.classList.toggle("on", +b.dataset.n === k)); };
   document.querySelectorAll("[data-n]").forEach(b => b.onclick = () => pick(+b.dataset.n)); pick(8);
+  $("#pn").oninput = () => { n = parseInt($("#pn").value, 10) || 0; price();
+    document.querySelectorAll("[data-n]").forEach(b => b.classList.toggle("on", +b.dataset.n === n)); };
+  $("#ppair").onchange = price; if ($("#pfound")) $("#pfound").onchange = price;
   $("#pc").onclick = closeModal;
   $("#pok").onclick = async () => {
-    const n = parseInt($("#pn").value, 10), a = $("#pa").value === "" ? null : Number($("#pa").value);
-    if (!n) { $("#perr").textContent = "Enter the number of classes."; return; }
+    const k = parseInt($("#pn").value, 10), a = $("#pa").value === "" ? null : Number($("#pa").value);
+    if (!k) { $("#perr").textContent = "Enter the number of classes."; return; }
+    const tags = [$("#ppair").checked ? "pair" : "", $("#pfound") && $("#pfound").checked ? `founding −${T.prices.founding}%` : ""].filter(Boolean);
+    const note = [...tags, $("#pnote").value.trim()].filter(Boolean).join(" · ") || null;
+    const row = { delta: k, kind: k > 0 ? "package" : "fix", amount: a, note };
+    if (T.expiryOK && k > 0 && $("#pe").value) row.expires_on = $("#pe").value;
     $("#pok").disabled = true;
-    const ok = await addLedger(s, { delta: n, kind: n > 0 ? "package" : "fix", amount: a, note: $("#pnote").value.trim() || null });
+    const ok = await addLedger(s, row);
     if (ok) { closeModal(); toast(`Balance: ${balanceOf(s.id)} classes`); renderStudent(); } else $("#pok").disabled = false;
   };
 }
@@ -1097,11 +1166,15 @@ function openReminder(s){
   };
 }
 function openPrices(){
-  const P = T.prices.packs || {}, cur = T.prices.currency || "€";
-  openModal(`<h2>Prices</h2><p class="sub">Used to fill in the amount when you add a package. You can still change it for each student.</p>
+  const P = T.prices.packs || {}, W = T.prices.weeks || {}, cur = T.prices.currency || "$";
+  openModal(`<h2>Prices</h2><p class="sub">Used to fill in the amount and end date when you add a package. You can still change them for each student.</p>
     <label class="f" for="pcur">Currency</label><input class="field" id="pcur" value="${esc(cur)}" maxlength="4" style="max-width:120px">
     <div class="ptable">${PACKS.map(n => `<div class="prow"><span class="pn">${n === 1 ? "Single class" : n + " classes"}</span>
-      <input class="field" data-p="${n}" type="number" inputmode="decimal" value="${P[n] ?? ""}" placeholder="—"><span class="pper" id="pp${n}"></span></div>`).join("")}</div>
+      <input class="field" data-p="${n}" type="number" inputmode="decimal" value="${P[n] ?? ""}" placeholder="—"><span class="pper" id="pp${n}"></span></div>
+      ${n > 1 ? `<div class="prow sub2"><span class="pn">valid for</span><input class="field" data-w="${n}" type="number" inputmode="numeric" value="${W[n] ?? ""}" placeholder="—"><span class="pper">weeks</span></div>` : ""}`).join("")}
+      <div class="prow"><span class="pn">Pair, per person</span><input class="field" id="ppairp" type="number" inputmode="decimal" value="${T.prices.pair ?? ""}" placeholder="—"><span class="pper">per class</span></div>
+      <div class="prow"><span class="pn">Founding discount</span><input class="field" id="pfd" type="number" inputmode="numeric" value="${T.prices.founding ?? 15}"><span class="pper">% for</span></div>
+      <div class="prow sub2"><span class="pn"></span><input class="field" id="pfm" type="number" inputmode="numeric" value="${T.prices.foundingMonths ?? 6}"><span class="pper">months</span></div></div>
     ${T.ledgerOK ? "" : `<p class="note">Run <b>supabase/migrate_2.sql</b> first, then prices can be saved.</p>`}
     <div class="err" id="prerr"></div>
     <div class="row two"><button class="btn ghost" id="prc">Cancel</button><button class="btn blue" id="prs">Save</button></div>`);
@@ -1111,8 +1184,12 @@ function openPrices(){
   document.querySelectorAll("[data-p], #pcur").forEach(i => i.oninput = upd); upd();
   $("#prc").onclick = closeModal;
   $("#prs").onclick = async () => {
-    const packs = {}; PACKS.forEach(n => { const v = document.querySelector(`[data-p="${n}"]`).value; if (v !== "") packs[n] = Number(v); });
-    const value = { currency: $("#pcur").value.trim() || "€", packs };
+    const num = v => v === "" ? undefined : Number(v);
+    const packs = {}, weeks = {};
+    PACKS.forEach(n => { const v = num(document.querySelector(`[data-p="${n}"]`).value); if (v !== undefined) packs[n] = v;
+      const w = document.querySelector(`[data-w="${n}"]`); if (w && num(w.value)) weeks[n] = num(w.value); });
+    const value = { v: 2, currency: $("#pcur").value.trim() || "$", packs, weeks, pair: num($("#ppairp").value),
+      founding: num($("#pfd").value) ?? 15, foundingMonths: num($("#pfm").value) ?? 6 };
     const { error } = await sb.from("app_settings").upsert({ key: "prices", value, updated_at: new Date().toISOString() });
     if (error) { $("#prerr").textContent = error.message; return; }
     T.prices = value; closeModal(); toast("Prices saved");

@@ -1,4 +1,6 @@
-# Яблуко · Ukrainian practice app: project brief
+# Ucranización · Práctica: Ukrainian practice app, project brief
+
+Brand: the school is «Ucranización» (Instagram @ucranizacion). The app has no name of its own, caption «Práctica / Practice». Don't mention the textbook name in the app or materials. The repo and URL keep the old name `yabluko` so links keep working.
 
 Read this first if you're picking up this project.
 
@@ -84,3 +86,7 @@ board; this app is where students practise between classes.
 - Theme: Auto / Light / Dark in Settings (localStorage "theme", html[data-theme]).
 - Interface language (STAGE): 0 bilingual; 1 labels in Ukrainian (all Intro lessons at 100%); 2 all Ukrainian (all 52 A1 lessons at 100%). Helpers L/Ls (labels), I/I2 (instructions), TT (titles), HU (game hints via HINT_UA). Student can force bilingual (profiles.ui_choice='bi'); teacher override profiles.ui_override; congratulations shown once (profiles.ui_seen + localStorage). Settings → Мова page always stays bilingual.
 - Class balance: table ledger (+package / −class / fix), teacher-only RLS; students read their number via rpc my_balance(). Prices in app_settings key 'prices' {currency, packs:{1,4,8,16,32}}. "Заняття відбулося" deducts 1, then offers to open the next lessons; at ≤3 offers a reminder via the share sheet. Needs supabase/migrate_2.sql (app degrades gracefully without it).
+
+- Prices (decisions doc, 13 Nov 2026): USD, paid in UAH at the NBU rate. Single $20; 8 classes $136, valid 6 weeks; 16 classes $256, valid 12 weeks; pair $14 per person per class; founding students −15% for 6 months. 32-class package on hold (add it back to PACKS and DEFAULT_PRICES). app_settings 'prices' is now {v:2, currency, packs, weeks, pair, founding, foundingMonths}; older saved prices without v:2 are ignored.
+- Package end dates: ledger.expires_on (supabase/migrate_3.sql). The package dialog fills it from weeks; teacher sees "valid until" (orange ≤7 days, red when expired); students see a banner from 7 days before (rpc my_package(), falls back to my_balance()). Nothing is taken away automatically when a package expires: policy still to be decided.
+- Founding students: app_settings key 'founding' = {student_id: "YYYY-MM-DD"} (no migration). Package dialog applies the discount while it's active.
