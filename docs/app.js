@@ -905,7 +905,7 @@ async function loadTeacher(){
   T.ledgerOK = !lg.error; T.ledger = {};
   if (!lg.error) for (const r of lg.data) (T.ledger[r.student_id] ||= []).push(r);
   const saved = !pr.error && pr.data && pr.data.value;
-  T.prices = saved && saved.v === 2 ? { ...DEFAULT_PRICES, ...saved } : { ...DEFAULT_PRICES };   // older saved prices were placeholders
+  T.prices = saved && saved.v === 3 ? { ...DEFAULT_PRICES, ...saved } : { ...DEFAULT_PRICES };   // older saved prices were placeholders
   // package expiry (supabase/migrate_3.sql) and founding students (stored with the settings, no migration needed)
   const [ex, fd] = await Promise.all([
     sb.from("ledger").select("expires_on").limit(1),
@@ -914,10 +914,10 @@ async function loadTeacher(){
   T.expiryOK = T.ledgerOK && !ex.error;
   T.founding = (!fd.error && fd.data && fd.data.value) || {};
 }
-// Decisions doc (13 Nov 2026): single $20 · 8 for $136 (6 weeks) · 16 for $256 (12 weeks) · pair $14 per person · founding −15% for 6 months.
+// Decisions doc (13 Nov 2026): single $20 · 8 for $136 (3 months) · 16 for $256 (6 months) · pair $14 per person · founding −15% for 6 months.
 // The 32-class package is on hold until there's more content: add 32 back here and in DEFAULT_PRICES.
 const PACKS = [1, 8, 16];
-const DEFAULT_PRICES = { v: 2, currency: "$", packs: { 1: 20, 8: 136, 16: 256 }, pair: 14, weeks: { 8: 6, 16: 12 }, founding: 15, foundingMonths: 6 };
+const DEFAULT_PRICES = { v: 3, currency: "$", packs: { 1: 20, 8: 136, 16: 256 }, pair: 14, months: { 8: 3, 16: 6 }, founding: 15, foundingMonths: 6 };
 const plusDays = (d, n) => { const x = new Date(d + "T12:00:00"); x.setDate(x.getDate() + n); return fmt(x); };
 const plusMonths = (d, n) => { const x = new Date(d + "T12:00:00"); x.setMonth(x.getMonth() + n); return fmt(x); };
 const lastPackage = id => (T.ledger[id] || []).find(r => r.kind === "package" && r.expires_on);
@@ -1110,7 +1110,7 @@ async function classHeld(s){
   };
 }
 function openPackage(s){
-  const P = T.prices.packs || {}, W = T.prices.weeks || {}, fu = foundingUntil(s.id), cur = T.prices.currency || "";
+  const P = T.prices.packs || {}, M = T.prices.months || {}, fu = foundingUntil(s.id), cur = T.prices.currency || "";
   openModal(`<h2>New package</h2><p class="sub">for ${esc(s.nickname)}</p>
     <div class="seg">${PACKS.map(n => `<button data-n="${n}">${n === 1 ? "1 · single" : n}</button>`).join("")}</div>
     <label class="toggle"><input type="checkbox" id="ppair"><span class="tt">Pair lesson<span>${money(T.prices.pair)} per person per class</span></span></label>
@@ -1130,7 +1130,7 @@ function openPackage(s){
     $("#pa").value = v ?? "";
   };
   const pick = k => { n = k; $("#pn").value = k; price();
-    if ($("#pe")) $("#pe").value = W[k] ? plusDays(today(), W[k] * 7) : "";
+    if ($("#pe")) $("#pe").value = M[k] ? plusMonths(today(), M[k]) : "";
     document.querySelectorAll("[data-n]").forEach(b => b.classList.toggle("on", +b.dataset.n === k)); };
   document.querySelectorAll("[data-n]").forEach(b => b.onclick = () => pick(+b.dataset.n)); pick(8);
   $("#pn").oninput = () => { n = parseInt($("#pn").value, 10) || 0; price();
@@ -1166,12 +1166,12 @@ function openReminder(s){
   };
 }
 function openPrices(){
-  const P = T.prices.packs || {}, W = T.prices.weeks || {}, cur = T.prices.currency || "$";
+  const P = T.prices.packs || {}, M = T.prices.months || {}, cur = T.prices.currency || "$";
   openModal(`<h2>Prices</h2><p class="sub">Used to fill in the amount and end date when you add a package. You can still change them for each student.</p>
     <label class="f" for="pcur">Currency</label><input class="field" id="pcur" value="${esc(cur)}" maxlength="4" style="max-width:120px">
     <div class="ptable">${PACKS.map(n => `<div class="prow"><span class="pn">${n === 1 ? "Single class" : n + " classes"}</span>
       <input class="field" data-p="${n}" type="number" inputmode="decimal" value="${P[n] ?? ""}" placeholder="—"><span class="pper" id="pp${n}"></span></div>
-      ${n > 1 ? `<div class="prow sub2"><span class="pn">valid for</span><input class="field" data-w="${n}" type="number" inputmode="numeric" value="${W[n] ?? ""}" placeholder="—"><span class="pper">weeks</span></div>` : ""}`).join("")}
+      ${n > 1 ? `<div class="prow sub2"><span class="pn">valid for</span><input class="field" data-w="${n}" type="number" inputmode="numeric" value="${M[n] ?? ""}" placeholder="—"><span class="pper">months</span></div>` : ""}`).join("")}
       <div class="prow"><span class="pn">Pair, per person</span><input class="field" id="ppairp" type="number" inputmode="decimal" value="${T.prices.pair ?? ""}" placeholder="—"><span class="pper">per class</span></div>
       <div class="prow"><span class="pn">Founding discount</span><input class="field" id="pfd" type="number" inputmode="numeric" value="${T.prices.founding ?? 15}"><span class="pper">% for</span></div>
       <div class="prow sub2"><span class="pn"></span><input class="field" id="pfm" type="number" inputmode="numeric" value="${T.prices.foundingMonths ?? 6}"><span class="pper">months</span></div></div>
@@ -1185,10 +1185,10 @@ function openPrices(){
   $("#prc").onclick = closeModal;
   $("#prs").onclick = async () => {
     const num = v => v === "" ? undefined : Number(v);
-    const packs = {}, weeks = {};
+    const packs = {}, months = {};
     PACKS.forEach(n => { const v = num(document.querySelector(`[data-p="${n}"]`).value); if (v !== undefined) packs[n] = v;
-      const w = document.querySelector(`[data-w="${n}"]`); if (w && num(w.value)) weeks[n] = num(w.value); });
-    const value = { v: 2, currency: $("#pcur").value.trim() || "$", packs, weeks, pair: num($("#ppairp").value),
+      const w = document.querySelector(`[data-w="${n}"]`); if (w && num(w.value)) months[n] = num(w.value); });
+    const value = { v: 3, currency: $("#pcur").value.trim() || "$", packs, months, pair: num($("#ppairp").value),
       founding: num($("#pfd").value) ?? 15, foundingMonths: num($("#pfm").value) ?? 6 };
     const { error } = await sb.from("app_settings").upsert({ key: "prices", value, updated_at: new Date().toISOString() });
     if (error) { $("#prerr").textContent = error.message; return; }
