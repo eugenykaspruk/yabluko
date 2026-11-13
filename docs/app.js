@@ -322,6 +322,21 @@ function balanceBanner(){
     : `<div class="balbar">${I2(`Залишилось ${n} ${pl(n, "заняття", "заняття", "занять")}. Час поновити пакет`, `${n} ${n === 1 ? "class" : "classes"} left. Time to renew your package`)}</div>`;
 }
 
+/* ---------- always run the newest version ----------
+   GitHub Pages lets browsers keep files for up to 10 minutes. On start and whenever the app
+   comes back to the screen, compare with docs/version.txt and reload if a newer one is out. */
+async function checkVersion(){
+  try {
+    const v = (await (await fetch("version.txt?t=" + Date.now(), { cache: "no-store" })).text()).trim();
+    if (v && window.APP_V && v !== window.APP_V && sessionStorage.getItem("yabluko-reloaded") !== v) {
+      sessionStorage.setItem("yabluko-reloaded", v);
+      location.replace(location.pathname + "?v=" + v + location.hash);
+    }
+  } catch(e) {}
+}
+checkVersion();
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkVersion(); });
+
 let booted = false;
 sb.auth.onAuthStateChange((event, session) => {
   if (event === "SIGNED_OUT" || !session) { me = null; booted = false; renderLogin(); return; }
