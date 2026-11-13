@@ -255,3 +255,5 @@ h3.sec small{font-family:"Noto Sans",sans-serif;font-size:13px;font-weight:500;c
 .setback{border:0;background:none;color:var(--blue);font-weight:600;font-size:14px;padding:0 0 12px}
 :root[data-theme="dark"] .setback{color:#7fa8ff}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .setback{color:#7fa8ff}}
+
+.stress .sw{display:inline-flex;align-items:center;white-space:nowrap;margin:0 .35em}

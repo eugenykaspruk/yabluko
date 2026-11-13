@@ -68,7 +68,10 @@ function todayQueueFrom(words, cs){
   const t = today(), card = id => cs.get(id);
   const due = words.filter(w => { const c = card(w.id); return c && (!c.due || c.due <= t); });
   const fresh = words.filter(w => !card(w.id));
-  const startedToday = [...cs.values()].filter(c => c.reps === 1 && c.last === t).length;
+  // words first seen today: remembered on this device, plus a fallback for other devices
+  const intro = cs === cards ? introToday() : new Set();
+  for (const [id, c] of cs) if (c.reps === 1 && c.last === t) intro.add(id);
+  const startedToday = intro.size;
   return { due, fresh: fresh.slice(0, Math.max(0, NEW_PER_DAY - startedToday)), freshTotal: fresh.length };
 }
 const todayQueue = () => todayQueueFrom(deck(), cards);
@@ -85,12 +88,17 @@ function schedule(c, r){
   else { box = Math.min(box+2, MAXBOX); due = addDays(INTERVALS[box]); }
   return { box, due, lapses, reps:(c.reps||0)+1, last: today() };
 }
+const INTRO_KEY = () => "yabluko-intro-" + today();
+function introToday(){ try { return new Set(JSON.parse(localStorage.getItem(INTRO_KEY()) || "[]")); } catch(e){ return new Set(); } }
+function markIntro(id){ try { const s = introToday(); s.add(id); localStorage.setItem(INTRO_KEY(), JSON.stringify([...s])); } catch(e){} }
 function recordWord(id, r, fromCards){
   const c = cardOf(id); let patch;
+  if (!cards.has(id)) markIntro(id);
   if (!fromCards && !isDue(id)) {
-    if (r === "good" || r === "easy") patch = { ...c, reps:(c.reps||0)+1, last: today() };
-    else if (r === "hard") patch = { ...c, reps:(c.reps||0)+1, last: today(), due: addDays(1) };
-    else patch = schedule(c, r);
+    // Extra practice on a word that isn't due: never pull it back into today's list.
+    // A mistake brings it back tomorrow instead.
+    if (r === "good" || r === "easy") patch = { ...c, last: today() };
+    else patch = { ...c, box: Math.max(1, Math.min(c.box || 0, 1)), due: addDays(1), last: today() };
   } else patch = schedule(c, r);
   cards.set(id, patch);
   saveCard(id, patch);
@@ -528,20 +536,27 @@ function renderDrill(){
       <div class="gbtns">${[["m","він"],["f","вона"],["n","воно"],["pl","вони"]].map(([g,t]) => `<button class="${g} ${a && g !== q.g && g !== a.picked ? "dim" : ""}" data-g="${g}" ${a ? "disabled" : ""}>${t}</button>`).join("")}</div>
       ${a ? feedback(a, w) : ""}`;
   } else if (rs.mode === "stress") {
-    const word = rs.q.word, chars = [...ST(word)];
-    // build letters; vowels become buttons; remember which vowel carries the stress
-    let html = "", vi = 0, target = -1;
-    for (let i = 0; i < chars.length; i++) {
-      const ch = chars[i]; if (ch === "́") continue;
-      const stressed = chars[i+1] === "́";
-      if (VOWELS.includes(ch)) {
-        const idx = vi++; if (stressed) target = idx;
-        let cls = ""; if (a) { if (idx === target || (stressed)) cls = "ok"; else if (idx === a.picked) cls = "bad"; }
-        html += `<button data-v="${idx}" class="${cls}" ${a ? "disabled" : ""}>${esc(ch)}</button>`;
-      } else html += ch === " " ? `<span>&nbsp;</span>` : `<span>${esc(ch)}</span>`;
-    }
-    rs.q.target = target;
-    body = `<div class="card">${a ? speakBtn(word) : ""}<div class="meta">Урок ${esc(w.lesson)} · Де наголос? · Where is the stress?</div>
+    // Each word of a phrase is answered on its own: one tap per word that has a stress mark.
+    const words = ST(rs.q.word).split(" "), picks = rs.q.picks ||= {};
+    const targets = {}; let html = "";
+    words.forEach((wd, wi) => {
+      const chars = [...wd], nv = chars.filter(ch => VOWELS.includes(ch)).length;
+      const live = wd.includes("́") && nv >= 2;
+      let vi = 0, part = "";
+      for (let i = 0; i < chars.length; i++) {
+        const ch = chars[i]; if (ch === "́") continue;
+        const stressed = chars[i+1] === "́";
+        if (live && VOWELS.includes(ch)) {
+          const idx = vi++; if (stressed) targets[wi] = idx;
+          const done = picks[wi] !== undefined; let cls = "";
+          if (done) { if (stressed) cls = "ok"; else if (idx === picks[wi]) cls = "bad"; }
+          part += `<button data-w="${wi}" data-v="${idx}" class="${cls}" ${done || a ? "disabled" : ""}>${esc(ch)}</button>`;
+        } else part += `<span>${esc(ch)}</span>`;
+      }
+      html += `<span class="sw">${part}</span>`;
+    });
+    rs.q.targets = targets;
+    body = `<div class="card">${a ? speakBtn(rs.q.word) : ""}<div class="meta">Урок ${esc(w.lesson)} · Де наголос? · Where is the stress?${Object.keys(rs.q.targets).length > 1 ? "<br>Tap one vowel in each word" : ""}</div>
         <div class="stress">${html}</div><div class="note">${esc(w.en)}</div></div>${a ? feedback(a, w) : ""}`;
   }
   el.innerHTML = rheader() + body;
@@ -557,7 +572,13 @@ function renderDrill(){
   } else if (rs.mode === "gender" && !a) {
     el.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { answer({ kind: b.dataset.g === rs.q.g ? "ok" : "bad", picked: b.dataset.g }); speak(rs.q.form); });
   } else if (rs.mode === "stress" && !a) {
-    el.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { const v = +b.dataset.v; answer({ kind: v === rs.q.target ? "ok" : "bad", picked: v }); speak(rs.q.word); });
+    el.querySelectorAll("[data-v]").forEach(b => b.onclick = () => {
+      const q = rs.q; q.picks[b.dataset.w] = +b.dataset.v;
+      const keys = Object.keys(q.targets);
+      if (keys.every(k => q.picks[k] !== undefined)) {
+        answer({ kind: keys.every(k => q.picks[k] === q.targets[k]) ? "ok" : "bad" }); speak(q.word);
+      } else renderDrill();
+    });
   }
   const nx = $("#next"); if (nx) { nx.onclick = advance; setTimeout(() => { try { nx.focus(); } catch(e){} }, 30); }
 }
