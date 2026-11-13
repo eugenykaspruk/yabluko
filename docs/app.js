@@ -921,7 +921,10 @@ const DEFAULT_PRICES = { v: 3, currency: "$", packs: { 1: 20, 8: 136, 16: 256 },
 const plusDays = (d, n) => { const x = new Date(d + "T12:00:00"); x.setDate(x.getDate() + n); return fmt(x); };
 const plusMonths = (d, n) => { const x = new Date(d + "T12:00:00"); x.setMonth(x.getMonth() + n); return fmt(x); };
 const lastPackage = id => (T.ledger[id] || []).find(r => r.kind === "package" && r.expires_on);
-const foundingUntil = id => { const d = T.founding[id]; return d && daysTo(d) >= 0 ? d : null; };
+// founding price runs from the first payment: "pending" until the first package is added, then an end date
+const foundingUntil = id => { const d = T.founding[id]; return d === "pending" ? "pending" : d && daysTo(d) >= 0 ? d : null; };
+const foundingText = (id, short) => { const u = foundingUntil(id); if (!u) return "";
+  return u === "pending" ? (short ? `${T.prices.foundingMonths} months from the first payment` : `starts with the first payment, then ${T.prices.foundingMonths} months`) : `until ${dmy(u)}`; };
 function expiryNote(id){   // "valid until …" for the latest package, while classes are left
   const p = lastPackage(id); if (!p || balanceOf(id) <= 0) return "";
   const n = daysTo(p.expires_on);
@@ -1062,7 +1065,7 @@ function drawClasses(s){
     <div class="balbig ${bal <= 3 ? "low" : ""}"><b>${bal}</b><span>${bal < 0 ? "classes owed" : bal === 1 ? "class left" : "classes left"}</span></div>
     ${expiryNote(s.id) ? `<p class="note" style="margin:-6px 0 10px">${expiryNote(s.id)}</p>` : ""}
     <div class="founding">${foundingUntil(s.id)
-      ? `<span class="fchip">⭐ Founding price −${T.prices.founding}% until ${dmy(foundingUntil(s.id))}</span><button class="linkbtn" id="funset">Remove</button>`
+      ? `<span class="fchip">⭐ Founding price −${T.prices.founding}% · ${foundingText(s.id)}</span><button class="linkbtn" id="funset">Remove</button>`
       : `<button class="linkbtn" id="fset">⭐ Mark as founding student (−${T.prices.founding}% for ${T.prices.foundingMonths} months)</button>`}</div>
     <div class="row two"><button class="btn blue" id="held">✓ Class held<br><small>−1 class</small></button><button class="btn ghost" id="pack">＋ Package<br><small>add classes</small></button></div>
     ${bal <= 3 ? `<div class="row"><button class="btn ghost small" id="remind">✉️ Send a reminder</button></div>` : ""}
@@ -1071,8 +1074,10 @@ function drawClasses(s){
   $("#held").onclick = () => classHeld(s);
   $("#pack").onclick = () => openPackage(s);
   if ($("#fset")) $("#fset").onclick = async () => {
-    T.founding[s.id] = plusMonths(today(), T.prices.foundingMonths);
-    if (await saveFounding()) { toast(`Founding price until ${dmy(T.founding[s.id])}`); drawClasses(s); } else delete T.founding[s.id];
+    const first = [...(T.ledger[s.id] || [])].reverse().find(r => r.kind === "package");   // ledger is newest first
+    T.founding[s.id] = first ? plusMonths(fmt(new Date(first.created_at)), T.prices.foundingMonths) : "pending";
+    if (first && daysTo(T.founding[s.id]) < 0) { delete T.founding[s.id]; toast("Their first payment was more than " + T.prices.foundingMonths + " months ago"); return; }
+    if (await saveFounding()) { toast(`Founding price ${foundingText(s.id, true)}`); drawClasses(s); } else delete T.founding[s.id];
   };
   if ($("#funset")) $("#funset").onclick = async () => {
     const was = T.founding[s.id]; delete T.founding[s.id];
@@ -1114,7 +1119,7 @@ function openPackage(s){
   openModal(`<h2>New package</h2><p class="sub">for ${esc(s.nickname)}</p>
     <div class="seg">${PACKS.map(n => `<button data-n="${n}">${n === 1 ? "1 · single" : n}</button>`).join("")}</div>
     <label class="toggle"><input type="checkbox" id="ppair"><span class="tt">Pair lesson<span>${money(T.prices.pair)} per person per class</span></span></label>
-    ${fu ? `<label class="toggle"><input type="checkbox" id="pfound" checked><span class="tt">⭐ Founding price −${T.prices.founding}%<span>until ${dmy(fu)}</span></span></label>` : ""}
+    ${fu ? `<label class="toggle"><input type="checkbox" id="pfound" checked><span class="tt">⭐ Founding price −${T.prices.founding}%<span>${foundingText(s.id)}</span></span></label>` : ""}
     <label class="f" for="pn">Classes (a negative number corrects the balance)</label><input class="field" id="pn" type="number" inputmode="numeric" value="8">
     <label class="f" for="pa">Paid ${esc(cur)}</label><input class="field" id="pa" type="number" inputmode="decimal" placeholder="optional">
     ${T.expiryOK ? `<label class="f" for="pe">Valid until</label><input class="field" id="pe" type="date"><div class="hint2">Empty = no end date.</div>`
@@ -1146,6 +1151,7 @@ function openPackage(s){
     if (T.expiryOK && k > 0 && $("#pe").value) row.expires_on = $("#pe").value;
     $("#pok").disabled = true;
     const ok = await addLedger(s, row);
+    if (ok && k > 0 && T.founding[s.id] === "pending") { T.founding[s.id] = plusMonths(today(), T.prices.foundingMonths); await saveFounding(); }
     if (ok) { closeModal(); toast(`Balance: ${balanceOf(s.id)} classes`); renderStudent(); } else $("#pok").disabled = false;
   };
 }
