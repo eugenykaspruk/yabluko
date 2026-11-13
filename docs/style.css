@@ -257,3 +257,28 @@ h3.sec small{font-family:"Noto Sans",sans-serif;font-size:13px;font-weight:500;c
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .setback{color:#7fa8ff}}
 
 .stress .sw{display:inline-flex;align-items:center;white-space:nowrap;margin:0 .35em}
+
+/* class balance */
+.legend2 .balchip{margin-left:auto;font-weight:700;color:var(--ink);white-space:nowrap}
+.legend2 .balchip.low{color:var(--orange)}
+.balbar{background:var(--yellow-soft);border:1px solid var(--yellow);border-radius:12px;padding:10px 14px;font-size:14px;font-weight:600;margin:0 0 12px}
+.balbar.zero{background:color-mix(in srgb,var(--red) 12%,var(--card));border-color:var(--red)}
+.balbig{display:flex;align-items:baseline;gap:8px;margin:4px 0 12px}
+.balbig b{font-family:"Noto Serif",serif;font-size:40px;line-height:1}
+.balbig span{color:var(--muted)}
+.balbig.low b{color:var(--orange)}
+.btn small{font-weight:500;font-size:12px;opacity:.85}
+.ledger{margin-top:12px;border-top:1px solid var(--line)}
+.lrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.lrow .ld{color:var(--muted);font-size:12px;min-width:78px}
+.lrow .lt{flex:1}
+.lrow .lv{font-weight:700}.lrow .lv.neg{color:var(--red)}.lrow .lv.pos{color:var(--green)}
+.lrow .lx{border:0;background:none;color:var(--muted);font-size:13px;padding:2px 6px;border-radius:6px}
+.lrow .lx.sure{background:var(--red);color:#fff}
+.nums .lowbal b{color:var(--orange)}
+.ptable{display:flex;flex-direction:column;gap:8px;margin:14px 0}
+.prow{display:grid;grid-template-columns:110px 110px 1fr;align-items:center;gap:10px}
+.prow .pn{font-weight:600;font-size:14px}.prow .pper{color:var(--muted);font-size:12px}
+textarea.field{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--soft);font:inherit;font-size:14px;color:var(--ink);resize:vertical}
+.congrats{text-align:center}.congrats .cbig{font-family:"Noto Serif",serif;font-size:28px;font-weight:700;margin:6px 0 10px}
+.congrats p{font-size:16px;line-height:1.45}

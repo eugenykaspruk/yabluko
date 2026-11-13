@@ -82,3 +82,5 @@ board; this app is where students practise between classes.
 - Typing drills use a ЙЦУКЕН on-screen keyboard.
 - Home shows the 3 newest lessons + "Усі уроки" page (view.tab "lessons").
 - Theme: Auto / Light / Dark in Settings (localStorage "theme", html[data-theme]).
+- Interface language (STAGE): 0 bilingual; 1 labels in Ukrainian (all Intro lessons at 100%); 2 all Ukrainian (all 52 A1 lessons at 100%). Helpers L/Ls (labels), I/I2 (instructions), TT (titles), HU (game hints via HINT_UA). Student can force bilingual (profiles.ui_choice='bi'); teacher override profiles.ui_override; congratulations shown once (profiles.ui_seen + localStorage). Settings → Мова page always stays bilingual.
+- Class balance: table ledger (+package / −class / fix), teacher-only RLS; students read their number via rpc my_balance(). Prices in app_settings key 'prices' {currency, packs:{1,4,8,16,32}}. "Заняття відбулося" deducts 1, then offers to open the next lessons; at ≤3 offers a reminder via the share sheet. Needs supabase/migrate_2.sql (app degrades gracefully without it).
