@@ -907,12 +907,14 @@ async function loadTeacher(){
   const saved = !pr.error && pr.data && pr.data.value;
   T.prices = saved && saved.v === 3 ? { ...DEFAULT_PRICES, ...saved } : { ...DEFAULT_PRICES };   // older saved prices were placeholders
   // package expiry (supabase/migrate_3.sql) and founding students (stored with the settings, no migration needed)
-  const [ex, fd] = await Promise.all([
+  const [ex, fd, rg] = await Promise.all([
     sb.from("ledger").select("expires_on").limit(1),
     sb.from("app_settings").select("value").eq("key", "founding").maybeSingle(),
+    sb.from("app_settings").select("value").eq("key", "regions").maybeSingle(),
   ]);
   T.expiryOK = T.ledgerOK && !ex.error;
   T.founding = (!fd.error && fd.data && fd.data.value) || {};
+  T.regions = (!rg.error && rg.data && rg.data.value) || {};
 }
 // Decisions doc (13 Nov 2026): single $20 · 8 for $136 (3 months) · 16 for $256 (6 months) · pair $14 per person · founding −15% for 6 months.
 // The 32-class package is on hold until there's more content: add 32 back here and in DEFAULT_PRICES.
@@ -932,6 +934,31 @@ function expiryNote(id){   // "valid until …" for the latest package, while cl
        : n <= 7 ? `<span class="exp soon">valid until ${dmy(p.expires_on)} (${n} ${n === 1 ? "day" : "days"})</span>`
        : `<span class="exp">valid until ${dmy(p.expires_on)}</span>`;
 }
+// Where each student lives (for the air-raid alert rule). Oblast names as alerts.in.ua writes them, English for the teacher view.
+const REGIONS = [["", "Not set"], ["abroad", "Outside Ukraine"], ["м. Київ", "Kyiv city"], ["Київська область", "Kyiv oblast"],
+  ["Вінницька область", "Vinnytsia"], ["Волинська область", "Volyn"], ["Дніпропетровська область", "Dnipropetrovsk"], ["Донецька область", "Donetsk"],
+  ["Житомирська область", "Zhytomyr"], ["Закарпатська область", "Zakarpattia"], ["Запорізька область", "Zaporizhzhia"], ["Івано-Франківська область", "Ivano-Frankivsk"],
+  ["Кіровоградська область", "Kirovohrad"], ["Луганська область", "Luhansk"], ["Львівська область", "Lviv"], ["Миколаївська область", "Mykolaiv"],
+  ["Одеська область", "Odesa"], ["Полтавська область", "Poltava"], ["Рівненська область", "Rivne"], ["Сумська область", "Sumy"],
+  ["Тернопільська область", "Ternopil"], ["Харківська область", "Kharkiv"], ["Херсонська область", "Kherson"], ["Хмельницька область", "Khmelnytskyi"],
+  ["Черкаська область", "Cherkasy"], ["Чернівецька область", "Chernivtsi"], ["Чернігівська область", "Chernihiv"]];
+const regionText = id => { const r = T.regions[id]; if (!r || (!r.oblast && !r.city)) return ""; if (!r.oblast) return r.city;
+  const name = (REGIONS.find(x => x[0] === r.oblast) || [, r.oblast])[1];
+  return r.oblast === "abroad" ? (r.city ? `${r.city} (outside Ukraine)` : "Outside Ukraine") : (r.city ? `${r.city}, ${name}` : name); };
+async function saveSetting(key, value){
+  const { error } = await sb.from("app_settings").upsert({ key, value, updated_at: new Date().toISOString() });
+  if (error) toast("Couldn't save: " + error.message);
+  return !error;
+}
+// "Moved" records: kind 'fix', delta 0 (or a class, −1, for a late cancel), note starting "moved:<reason>"
+const MOVE = {
+  alert:   { label: "Air-raid alert", sub: "Alert in their region at the start or during the class, and they had to stop. No class taken off." },
+  teacher: { label: "I moved or cancelled it", sub: "No class taken off. The package end date moves 1 week later." },
+  ontime:  { label: "Student moved it in time", sub: "24 hours or more before. No class taken off." },
+  late:    { label: "Late cancel or no-show", sub: "Less than 24 hours before, or didn't come. Counts as held: −1 class." },
+};
+const moveOf = r => { const m = /^moved:(\w+)/.exec(r.note || ""); return m && MOVE[m[1]] ? m[1] : null; };
+const moveNote = r => (r.note || "").replace(/^moved:\w+\s*·?\s*/, "");
 async function saveFounding(){
   const { error } = await sb.from("app_settings").upsert({ key: "founding", value: T.founding, updated_at: new Date().toISOString() });
   if (error) toast("Couldn't save: " + error.message);
@@ -1046,14 +1073,19 @@ function stageOf(s, st){
 const stamp = t => new Date(t).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 function ledgerRows(rows){
   return rows.map(r => `<div class="lrow"><span class="ld">${stamp(r.created_at)}</span>
-      <span class="lt">${r.kind === "class" ? "Class held" : r.kind === "package" ? `Package +${r.delta}${r.expires_on ? ` · valid until ${dmy(r.expires_on)}` : ""}` : `Correction ${r.delta > 0 ? "+" : ""}${r.delta}`}${r.amount ? " · " + money(r.amount) : ""}${r.note ? ` · <span class="note">${esc(r.note)}</span>` : ""}</span>
-      <span class="lv ${r.delta < 0 ? "neg" : "pos"}">${r.delta > 0 ? "+" : ""}${r.delta}</span><button class="lx" data-del="${r.id}" title="Delete">✕</button></div>`).join("");
+      <span class="lt">${moveOf(r) ? `↻ Moved: ${MOVE[moveOf(r)].label}${moveNote(r) ? ` · <span class="note">${esc(moveNote(r))}</span>` : ""}` : r.kind === "class" ? "Class held" : r.kind === "package" ? `Package +${r.delta}${r.expires_on ? ` · valid until ${dmy(r.expires_on)}` : ""}` : `Correction ${r.delta > 0 ? "+" : ""}${r.delta}`}${moveOf(r) ? "" : `${r.amount ? " · " + money(r.amount) : ""}${r.note ? ` · <span class="note">${esc(r.note)}</span>` : ""}`}</span>
+      <span class="lv ${r.delta < 0 ? "neg" : r.delta === 0 ? "" : "pos"}">${r.delta === 0 ? "0" : (r.delta > 0 ? "+" : "") + r.delta}</span><button class="lx" data-del="${r.id}" title="Delete">✕</button></div>`).join("");
 }
 function wireLedgerDelete(s, root, redraw){
   root.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
     if (!b.classList.contains("sure")) { b.classList.add("sure"); b.textContent = "Delete?"; return; }
     const { error } = await sb.from("ledger").delete().eq("id", b.dataset.del);
     if (error) { toast("Couldn't delete: " + error.message); return; }
+    const gone = (T.ledger[s.id] || []).find(r => String(r.id) === b.dataset.del), p = lastPackage(s.id);
+    if (gone && moveOf(gone) === "teacher" && p && T.expiryOK) {   // undo the +1 week
+      const nd = plusDays(p.expires_on, -7);
+      if (!(await sb.from("ledger").update({ expires_on: nd }).eq("id", p.id)).error) p.expires_on = nd;
+    }
     T.ledger[s.id] = (T.ledger[s.id] || []).filter(r => String(r.id) !== b.dataset.del); toast("Deleted"); redraw();
   });
 }
@@ -1068,11 +1100,15 @@ function drawClasses(s){
       ? `<span class="fchip">⭐ Founding price −${T.prices.founding}% · ${foundingText(s.id)}</span><button class="linkbtn" id="funset">Remove</button>`
       : `<button class="linkbtn" id="fset">⭐ Mark as founding student (−${T.prices.founding}% for ${T.prices.foundingMonths} months)</button>`}</div>
     <div class="row two"><button class="btn blue" id="held">✓ Class held<br><small>−1 class</small></button><button class="btn ghost" id="pack">＋ Package<br><small>add classes</small></button></div>
+    <div class="row"><button class="btn ghost small" id="moved">↻ Class moved or cancelled</button></div>
+    <p class="note region">📍 ${regionText(s.id) ? esc(regionText(s.id)) : "Region not set"} · <button class="linkbtn inline" id="regset">${regionText(s.id) ? "change" : "set"}</button></p>
     ${bal <= 3 ? `<div class="row"><button class="btn ghost small" id="remind">✉️ Send a reminder</button></div>` : ""}
     ${all.length ? `<div class="ledger">${ledgerRows(all.slice(0, 3))}</div>
       <button class="linkbtn" id="hist">Full history (${all.length}) →</button>` : `<p class="note">No packages or classes yet.</p>`}`;
   $("#held").onclick = () => classHeld(s);
   $("#pack").onclick = () => openPackage(s);
+  $("#moved").onclick = () => openMoved(s);
+  $("#regset").onclick = () => openRegion(s);
   if ($("#fset")) $("#fset").onclick = async () => {
     const first = [...(T.ledger[s.id] || [])].reverse().find(r => r.kind === "package");   // ledger is newest first
     T.founding[s.id] = first ? plusMonths(fmt(new Date(first.created_at)), T.prices.foundingMonths) : "pending";
@@ -1112,6 +1148,47 @@ async function classHeld(s){
       const set = (T.unlocks[s.id] ||= new Set()); codes.forEach(c => set.add(c)); toast(`Opened ${codes.join(", ")}`);
     }
     after();
+  };
+}
+function openMoved(s){
+  openModal(`<h2>Class moved or cancelled</h2><p class="sub">${esc(s.nickname)}${regionText(s.id) ? " · 📍 " + esc(regionText(s.id)) : ""}</p>
+    ${Object.entries(MOVE).map(([k, m], i) => `<label class="toggle"><input type="radio" name="mv" value="${k}" ${i === 0 ? "checked" : ""}><span class="tt">${m.label}<span>${m.sub}</span></span></label>`).join("")}
+    <label class="f" for="mvd">Date of the class</label><input class="field" id="mvd" type="date" value="${today()}">
+    <label class="f" for="mvn">Note</label><input class="field" id="mvn" placeholder="optional, e.g. new time Thu 18:00">
+    <div class="err" id="mverr"></div>
+    <div class="row two"><button class="btn ghost" id="mvc">Cancel</button><button class="btn blue" id="mvok">Save</button></div>`);
+  $("#mvc").onclick = closeModal;
+  $("#mvok").onclick = async () => {
+    const k = document.querySelector('[name="mv"]:checked').value, d = $("#mvd").value || today();
+    const extra = [d !== today() ? "class on " + dmy(d) : "", $("#mvn").value.trim()].filter(Boolean).join(" · ");
+    $("#mvok").disabled = true;
+    const ok = await addLedger(s, { delta: k === "late" ? -1 : 0, kind: k === "late" ? "class" : "fix", amount: null, note: `moved:${k}` + (extra ? " · " + extra : "") });
+    if (!ok) { $("#mvok").disabled = false; return; }
+    let msg = "Saved";
+    if (k === "teacher") {   // +1 week on the latest package's end date
+      const p = lastPackage(s.id);
+      if (p && T.expiryOK) {
+        const nd = plusDays(p.expires_on, 7);
+        const { error } = await sb.from("ledger").update({ expires_on: nd }).eq("id", p.id);
+        if (error) msg = "Saved, but couldn't move the end date: " + error.message; else { p.expires_on = nd; msg = `Saved · package now valid until ${dmy(nd)}`; }
+      }
+    }
+    if (k === "late") msg = `Counted as held · ${balanceOf(s.id)} left`;
+    closeModal(); toast(msg); renderStudent();
+  };
+}
+function openRegion(s){
+  const r = T.regions[s.id] || {};
+  openModal(`<h2>Where ${esc(s.nickname)} lives</h2><p class="sub">Used for the air-raid alert rule. Ask on the intro call; the student tells you when it changes.</p>
+    <label class="f" for="rgo">Region</label><select class="field" id="rgo">${REGIONS.map(([v, n]) => `<option value="${esc(v)}" ${v === (r.oblast || "") ? "selected" : ""}>${n}</option>`).join("")}</select>
+    <label class="f" for="rgc">City</label><input class="field" id="rgc" value="${esc(r.city || "")}" placeholder="optional, e.g. Kyiv, Lviv, Bogotá">
+    <div class="row two"><button class="btn ghost" id="rgx">Cancel</button><button class="btn blue" id="rgok">Save</button></div>`);
+  $("#rgx").onclick = closeModal;
+  $("#rgok").onclick = async () => {
+    const oblast = $("#rgo").value, city = $("#rgc").value.trim(), was = T.regions[s.id];
+    if (oblast || city) T.regions[s.id] = { oblast, city, since: today() }; else delete T.regions[s.id];
+    if (await saveSetting("regions", T.regions)) { closeModal(); toast("Region saved"); drawClasses(s); }
+    else { if (was) T.regions[s.id] = was; else delete T.regions[s.id]; }
   };
 }
 function openPackage(s){
