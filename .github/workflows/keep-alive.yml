@@ -14,9 +14,10 @@ jobs:
     steps:
       - name: Ping database
         run: |
-          code=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://pdusjphcxyugzzfdhcbb.supabase.co/rest/v1/profiles?select=id&limit=1" \
-            -H "apikey: sb_publishable_hle4nye7fyaX5DFv7NYIGw_hiwy8xDp")
+          # runs a real query in the database (is_teacher() reads the profiles table)
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            "https://pdusjphcxyugzzfdhcbb.supabase.co/rest/v1/rpc/is_teacher" \
+            -H "apikey: sb_publishable_hle4nye7fyaX5DFv7NYIGw_hiwy8xDp" -H "Content-Type: application/json" -d '{}')
           echo "Supabase answered $code"
           test "$code" = "200"
       - uses: actions/checkout@v4
