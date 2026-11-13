@@ -1002,27 +1002,35 @@ function stageOf(s, st){
   if (a1.length === A1_MARK && full(a1)) return 2;
   return full(LESSONS.filter(l => unitOf(l.code) === 0)) ? 1 : 0;
 }
-function drawClasses(s){
-  const box = $("#classes"); if (!box) return;
-  if (!T.ledgerOK) { box.innerHTML = `<h3>Classes</h3><p class="note">Run <b>supabase/migrate_2.sql</b> in Supabase to turn on class balances.</p>`; return; }
-  const bal = balanceOf(s.id), rows = (T.ledger[s.id] || []).slice(0, 20);
-  box.innerHTML = `<h3>Classes</h3>
-    <div class="balbig ${bal <= 3 ? "low" : ""}"><b>${bal}</b><span>${bal < 0 ? "classes owed" : "classes left"}</span></div>
-    <div class="row two"><button class="btn blue" id="held">✓ Class held<br><small>−1 class</small></button><button class="btn ghost" id="pack">＋ Package<br><small>add classes</small></button></div>
-    ${bal <= 3 ? `<div class="row"><button class="btn ghost small" id="remind">✉️ Send a reminder</button></div>` : ""}
-    <div class="ledger">${rows.length ? rows.map(r => `<div class="lrow"><span class="ld">${String(r.created_at).slice(0, 10)}</span>
+const stamp = t => new Date(t).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+function ledgerRows(rows){
+  return rows.map(r => `<div class="lrow"><span class="ld">${stamp(r.created_at)}</span>
       <span class="lt">${r.kind === "class" ? "Class held" : r.kind === "package" ? `Package +${r.delta}` : `Correction ${r.delta > 0 ? "+" : ""}${r.delta}`}${r.amount ? " · " + money(r.amount) : ""}${r.note ? ` · <span class="note">${esc(r.note)}</span>` : ""}</span>
-      <span class="lv ${r.delta < 0 ? "neg" : "pos"}">${r.delta > 0 ? "+" : ""}${r.delta}</span><button class="lx" data-del="${r.id}" title="Delete">✕</button></div>`).join("")
-      : `<p class="note">No packages or classes yet.</p>`}</div>`;
-  $("#held").onclick = () => classHeld(s);
-  $("#pack").onclick = () => openPackage(s);
-  if ($("#remind")) $("#remind").onclick = () => openReminder(s);
-  box.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+      <span class="lv ${r.delta < 0 ? "neg" : "pos"}">${r.delta > 0 ? "+" : ""}${r.delta}</span><button class="lx" data-del="${r.id}" title="Delete">✕</button></div>`).join("");
+}
+function wireLedgerDelete(s, root, redraw){
+  root.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
     if (!b.classList.contains("sure")) { b.classList.add("sure"); b.textContent = "Delete?"; return; }
     const { error } = await sb.from("ledger").delete().eq("id", b.dataset.del);
     if (error) { toast("Couldn't delete: " + error.message); return; }
-    T.ledger[s.id] = (T.ledger[s.id] || []).filter(r => String(r.id) !== b.dataset.del); drawClasses(s); toast("Deleted");
+    T.ledger[s.id] = (T.ledger[s.id] || []).filter(r => String(r.id) !== b.dataset.del); toast("Deleted"); redraw();
   });
+}
+function drawClasses(s){
+  const box = $("#classes"); if (!box) return;
+  if (!T.ledgerOK) { box.innerHTML = `<h3>Classes</h3><p class="note">Run <b>supabase/migrate_2.sql</b> in Supabase to turn on class balances.</p>`; return; }
+  const bal = balanceOf(s.id), all = T.ledger[s.id] || [];
+  box.innerHTML = `<h3>Classes</h3>
+    <div class="balbig ${bal <= 3 ? "low" : ""}"><b>${bal}</b><span>${bal < 0 ? "classes owed" : bal === 1 ? "class left" : "classes left"}</span></div>
+    <div class="row two"><button class="btn blue" id="held">✓ Class held<br><small>−1 class</small></button><button class="btn ghost" id="pack">＋ Package<br><small>add classes</small></button></div>
+    ${bal <= 3 ? `<div class="row"><button class="btn ghost small" id="remind">✉️ Send a reminder</button></div>` : ""}
+    ${all.length ? `<div class="ledger">${ledgerRows(all.slice(0, 3))}</div>
+      <button class="linkbtn" id="hist">Full history (${all.length}) →</button>` : `<p class="note">No packages or classes yet.</p>`}`;
+  $("#held").onclick = () => classHeld(s);
+  $("#pack").onclick = () => openPackage(s);
+  if ($("#remind")) $("#remind").onclick = () => openReminder(s);
+  if ($("#hist")) $("#hist").onclick = () => { view = { tab: "student", id: s.id, sub: "history" }; renderStudent(); window.scrollTo(0, 0); };
+  wireLedgerDelete(s, box, () => drawClasses(s));
 }
 async function addLedger(s, row){
   const { data, error } = await sb.from("ledger").insert({ student_id: s.id, ...row }).select().single();
@@ -1112,41 +1120,66 @@ function openPrices(){
 }
 function renderStudent(){
   const s = T.students.find(x => x.id === view.id), st = studentStats(s);
-  const weak = st.words.map(w => ({ w, c: st.cs.get(w.id) })).filter(x => x.c && x.c.lapses > 0).sort((a,b) => b.c.lapses - a.c.lapses).slice(0, 12);
-  const boxes = Array.from({ length: MAXBOX + 1 }, (_, b) => st.words.filter(w => (st.cs.get(w.id)?.box || 0) === b).length);
-  const maxB = Math.max(1, ...boxes);
-  $("#tmain").innerHTML = `<div class="top" style="margin-top:14px"><button id="tb">← All students</button><span></span><span></span></div>
-    <h2 style="margin-bottom:2px">${esc(s.nickname)} <span class="note">@${esc(s.username)}</span></h2>
-    <p class="sub">Last active ${ago(s.last_seen)} · ${st.level.toFixed(1)}% to ${st.goal} (whole book ${st.book.toFixed(1)}%) · ${st.due} words for today · ${st.learned} learned</p>
-    <div class="grid2">
+  const back = () => { view = { tab: "student", id: s.id }; renderStudent(); window.scrollTo(0, 0); };
+  const head = `<h2 style="margin-bottom:2px">${esc(s.nickname)} <span class="note">@${esc(s.username)}</span></h2>`;
+
+  if (view.sub === "history") {
+    const all = T.ledger[s.id] || [];
+    $("#tmain").innerHTML = `<div class="top" style="margin-top:14px"><button id="tb">← ${esc(s.nickname)}</button><span></span><span></span></div>${head}
+      <p class="sub">${(n => `${n} ${n === 1 ? "class" : "classes"} left`)(balanceOf(s.id))} · ${all.filter(r => r.kind === "class").length} held · ${(n => `${n} ${n === 1 ? "package" : "packages"}`)(all.filter(r => r.kind === "package").length)}</p>
+      <div class="panel"><h3>Class history</h3>${all.length ? `<div class="ledger">${ledgerRows(all)}</div>` : `<p class="note">Nothing yet.</p>`}</div>`;
+    $("#tb").onclick = back;
+    wireLedgerDelete(s, $("#tmain"), () => renderStudent());
+    return;
+  }
+
+  if (view.sub === "lessons") {
+    $("#tmain").innerHTML = `<div class="top" style="margin-top:14px"><button id="tb">← ${esc(s.nickname)}</button><span></span><span></span></div>${head}
       <div class="panel"><h3>Lessons</h3><p class="note" style="margin-top:0">Tick a lesson after you've done it in class. Its games and words open in the student's app.</p>
         ${UNITS.filter(u => LESSONS.some(l => unitOf(l.code) === u.n)).map(u => { const ls = LESSONS.filter(l => unitOf(l.code) === u.n); const allOn = ls.every(l => st.un.has(l.code));
           return `<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center"><b>${u.n === 0 ? "Introduction" : "Unit " + u.n}</b>
             <button class="btn ghost small" data-unit="${u.n}" data-on="${allOn ? 0 : 1}">${allOn ? "Close all" : "Open all"}</button></div>
             ${ls.map(l => { const p = lessonPctFrom(st.pr, l.code); return `<label class="toggle"><input type="checkbox" data-l="${l.code}" ${st.un.has(l.code) ? "checked" : ""}>
               <span class="tt">${l.code} · ${esc(l.en)}<span>${esc(ST(l.ua))}</span></span><span class="pc" style="color:${p >= 80 ? "var(--green)" : ""}">${p ? p + "%" : ""}</span></label>`; }).join("")}</div>`; }).join("")}
-        <p class="note">Units 2–12 appear here as their games are built.</p></div>
-      <div>
+        <p class="note">Units 2–12 appear here as their games are built.</p></div>`;
+    $("#tb").onclick = back;
+  } else {
+    // overview: the things used every class come first
+    const weak = st.words.map(w => ({ w, c: st.cs.get(w.id) })).filter(x => x.c && x.c.lapses > 0).sort((a,b) => b.c.lapses - a.c.lapses).slice(0, 5);
+    const boxes = Array.from({ length: MAXBOX + 1 }, (_, b) => st.words.filter(w => (st.cs.get(w.id)?.box || 0) === b).length);
+    const maxB = Math.max(1, ...boxes);
+    const openL = LESSONS.filter(l => st.un.has(l.code)), nextL = LESSONS.find(l => !st.un.has(l.code));
+    const recent = [...openL].reverse().slice(0, 3);
+    $("#tmain").innerHTML = `<div class="top" style="margin-top:14px"><button id="tb">← All students</button><span></span><span></span></div>${head}
+      <p class="sub">Last active ${ago(s.last_seen)} · ${st.level.toFixed(1)}% to ${st.goal} · ${st.due} words for today · ${st.learned} learned</p>
+      <div class="tgrid">
         <div class="panel" id="classes"></div>
-        <div class="panel"><h3>App language</h3>
-          <p class="note" style="margin-top:0">Automatic: labels turn Ukrainian after the Intro at 100%, everything at A1 at 100%. Now: <b>${["bilingual", "labels in Ukrainian", "all Ukrainian"][stageOf(s, st)]}</b>${s.ui_choice === "bi" ? " (the student chose bilingual)" : ""}.</p>
-          <select class="field" id="uiov">${[["", "Automatic"], ["0", "Bilingual"], ["1", "Labels in Ukrainian"], ["2", "All Ukrainian"]].map(([v, t]) =>
-            `<option value="${v}" ${String(s.ui_override ?? "") === v ? "selected" : ""}>${t}</option>`).join("")}</select></div>
-        <div class="panel"><h3>Word memory</h3><p class="note" style="margin-top:0">How many words sit in each review box (0 = new, 6 = long-term).</p>
+        <div class="panel"><h3>Lessons</h3>
+          <p class="note" style="margin-top:0"><b>${openL.length}</b> of ${LESSONS.length} open · <b>${openL.filter(l => lessonPctFrom(st.pr, l.code) >= 80).length}</b> done</p>
+          ${nextL ? `<div class="nextl"><span class="tt">Next: ${nextL.code} · ${esc(nextL.en)}<span>${esc(ST(nextL.ua))}</span></span><button class="btn blue small" id="opennext">Open</button></div>` : `<p class="note">All built lessons are open.</p>`}
+          ${recent.map(l => { const p = lessonPctFrom(st.pr, l.code); return `<div class="toggle"><span class="tt">${l.code} · ${esc(l.en)}</span><span class="pc" style="color:${p >= 80 ? "var(--green)" : ""}">${p}%</span></div>`; }).join("")}
+          <button class="linkbtn" id="alll">Manage all lessons →</button></div>
+        <div class="panel"><h3>Word memory</h3><p class="note" style="margin-top:0">Words in each review box (0 = new, 6 = long-term).</p>
           <div class="bars">${boxes.map((n,b) => `<div style="height:${n / maxB * 100}%" title="${n} words"><span>${b}</span></div>`).join("")}</div><div style="height:18px"></div></div>
         <div class="panel"><h3>Hardest words</h3>${weak.length ? weak.map(x => `<div class="toggle"><span class="tt">${esc(ST(x.w.ua))}<span>${esc(x.w.en)} · lesson ${x.w.lesson}</span></span><span class="pc">${x.c.lapses}× wrong</span></div>`).join("") : `<p class="note">No mistakes yet.</p>`}</div>
+        <div class="panel"><h3>App language</h3>
+          <p class="note" style="margin-top:0">Now: <b>${["bilingual", "labels in Ukrainian", "all Ukrainian"][stageOf(s, st)]}</b>${s.ui_choice === "bi" ? " (the student chose bilingual)" : ""}. Automatic: labels turn Ukrainian after the Intro at 100%, everything at A1 at 100%.</p>
+          <select class="field" id="uiov">${[["", "Automatic"], ["0", "Bilingual"], ["1", "Labels in Ukrainian"], ["2", "All Ukrainian"]].map(([v, t]) =>
+            `<option value="${v}" ${String(s.ui_override ?? "") === v ? "selected" : ""}>${t}</option>`).join("")}</select></div>
         <div class="panel"><h3>Account</h3>
-          <div class="row"><button class="btn ghost" id="rp">Reset password</button><button class="btn danger" id="del">Delete student</button></div></div>
-      </div>
-    </div>`;
-  $("#tb").onclick = () => renderStudentList();
-  drawClasses(s);
-  $("#uiov").onchange = async e => {
-    const v = e.target.value === "" ? null : +e.target.value;
-    const { error } = await sb.from("profiles").update({ ui_override: v }).eq("id", s.id);
-    if (error) { toast("Couldn't save: " + error.message); return; }
-    s.ui_override = v; toast("Saved"); renderStudent();
-  };
+          <div class="row two"><button class="btn ghost" id="rp">Reset password</button><button class="btn danger" id="del">Delete student</button></div></div>
+      </div>`;
+    $("#tb").onclick = () => renderStudentList();
+    drawClasses(s);
+    $("#alll").onclick = () => { view = { tab: "student", id: s.id, sub: "lessons" }; renderStudent(); window.scrollTo(0, 0); };
+    if ($("#opennext")) $("#opennext").onclick = async () => { if (await setLessons([nextL.code], true)) { toast(`${nextL.code} opened for ${s.nickname}`); renderStudent(); } };
+    $("#uiov").onchange = async e => {
+      const v = e.target.value === "" ? null : +e.target.value;
+      const { error } = await sb.from("profiles").update({ ui_override: v }).eq("id", s.id);
+      if (error) { toast("Couldn't save: " + error.message); return; }
+      s.ui_override = v; toast("Saved"); renderStudent();
+    };
+  }
   async function setLessons(codes, on){
     const r = on ? await sb.from("unlocks").upsert(codes.map(lesson => ({ student_id: s.id, lesson })), { ignoreDuplicates: true })
                  : await sb.from("unlocks").delete().eq("student_id", s.id).in("lesson", codes);
@@ -1161,7 +1194,7 @@ function renderStudent(){
     const codes = LESSONS.filter(l => String(unitOf(l.code)) === b.dataset.unit).map(l => l.code);
     if (await setLessons(codes, b.dataset.on === "1")) renderStudent();
   });
-  $("#rp").onclick = () => {
+  if ($("#rp")) $("#rp").onclick = () => {
     const pw = genPassword();
     openModal(`<h2>Reset password</h2><p class="sub">New password for <b>${esc(s.nickname)}</b>:</p><input class="field" id="rpw" value="${pw}"><div class="err" id="rerr"></div>
       <div class="row two"><button class="btn ghost" id="rc">Cancel</button><button class="btn blue" id="rok">Set password</button></div>`);
@@ -1170,7 +1203,7 @@ function renderStudent(){
       try { await callAdmin({ action: "reset_password", user_id: s.id, password: p }); showCredentials(s.username, p, "Password reset ✓"); }
       catch (e) { $("#rerr").textContent = e.message; $("#rok").disabled = false; } };
   };
-  $("#del").onclick = () => {
+  if ($("#del")) $("#del").onclick = () => {
     openModal(`<h2>Delete ${esc(s.nickname)}?</h2><p class="sub">This removes the login and all progress for <b>@${esc(s.username)}</b>. It can't be undone.</p>
       <label class="f" for="dc">Type the login name to confirm</label><input class="field" id="dc" autocapitalize="off"><div class="err" id="derr"></div>
       <div class="row two"><button class="btn ghost" id="dcan">Cancel</button><button class="btn danger" id="dok">Delete</button></div>`);

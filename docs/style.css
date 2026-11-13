@@ -282,3 +282,14 @@ h3.sec small{font-family:"Noto Sans",sans-serif;font-size:13px;font-weight:500;c
 textarea.field{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--soft);font:inherit;font-size:14px;color:var(--ink);resize:vertical}
 .congrats{text-align:center}.congrats .cbig{font-family:"Noto Serif",serif;font-size:28px;font-weight:700;margin:6px 0 10px}
 .congrats p{font-size:16px;line-height:1.45}
+
+/* teacher: student overview */
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;align-items:start}
+@media (max-width:720px){.tgrid{grid-template-columns:1fr}}
+.linkbtn{border:0;background:none;color:var(--blue);font-weight:600;font-size:14px;padding:10px 0 0;cursor:pointer}
+:root[data-theme="dark"] .linkbtn{color:#7fa8ff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .linkbtn{color:#7fa8ff}}
+.nextl{display:flex;align-items:center;gap:10px;background:var(--soft);border-radius:12px;padding:10px 12px;margin:6px 0 8px}
+.nextl .tt{flex:1;font-weight:600;font-size:14px}
+.nextl .tt span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.lrow .ld{min-width:150px}
