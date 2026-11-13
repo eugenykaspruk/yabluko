@@ -109,7 +109,14 @@ const isTeacher = () => me && me.role === "teacher";
 const LIDX = Object.fromEntries(LESSONS.map((l, i) => [l.code, i]));
 const openLessonsNewest = () => [...unlocked].sort((a, b) =>
   String(unlockedAt[b] || "").localeCompare(String(unlockedAt[a] || "")) || LIDX[b] - LIDX[a]);
-const deck = () => WORDS.filter(w => unlocked.has(w.lesson) && w.review);
+// The base of a word: no stress marks, no "(plural)" note, lower case. "стіле`ць (стільці`)" → "стілець".
+const baseOf = ua => plain(ua).replace(/\s*\(.*?\)\s*/g, " ").trim().toLowerCase();
+// Meaning without a disambiguating note: "number (amount)" → "number". Synonyms share it.
+const meaningOf = en => String(en).replace(/\s*\(.*?\)\s*$/, "").trim().toLowerCase();
+// A word that comes back in a later lesson keeps one review card: the one from the earliest unlocked lesson.
+const deck = () => { const seen = new Set();
+  return WORDS.filter(w => { if (!unlocked.has(w.lesson) || !w.review) return false;
+    const b = baseOf(w.ua); if (seen.has(b)) return false; seen.add(b); return true; }); };
 const cardOf = id => cards.get(id) || { box: 0, due: null, lapses: 0, reps: 0 };
 const isDue = id => { const c = cardOf(id); return !c.due || c.due <= today(); };   // new words count as due
 const NEW_PER_DAY = 15;   // new words introduced per day, so a freshly unlocked unit doesn't flood the review
@@ -243,7 +250,8 @@ function renderLogin(msg){
     $("#lbtn").disabled = true; $("#lerr").textContent = "";
     const { error } = await sb.auth.signInWithPassword({ email, password: p });
     $("#lbtn").disabled = false;
-    if (error) $("#lerr").textContent = /invalid/i.test(error.message) ? "Неправильний логін або пароль · Wrong username or password" : error.message;
+    if (error) $("#lerr").textContent = /invalid/i.test(error.message) ? "Неправильний логін або пароль · Wrong username or password"
+      : /banned/i.test(error.message) ? "Доступ закрито: пакет закінчився. Напиши вчителю · Access closed: your package has ended. Message your teacher." : error.message;
   };
 }
 
@@ -270,6 +278,11 @@ async function loadMe(user){
   cards = new Map(c.data.map(r => [r.word_id, r]));
   prog = {}; for (const r of g.data) (prog[r.lesson] ||= {})[r.game] = r.best;
   await loadBalance();
+  if (BAL !== null && BEXP && daysTo(BEXP) < -14) {   // package ended more than 14 days ago: login closed (also enforced in Supabase, migrate_4.sql)
+    loginMsg = "Доступ закрито: пакет закінчився. Напиши вчителю · Access closed: your package has ended. Message your teacher.";
+    await sb.auth.signOut();
+    return false;
+  }
   return true;
 }
 
@@ -348,9 +361,9 @@ async function checkVersion(){
 checkVersion();
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkVersion(); });
 
-let booted = false;
+let booted = false, loginMsg = "";
 sb.auth.onAuthStateChange((event, session) => {
-  if (event === "SIGNED_OUT" || !session) { me = null; booted = false; renderLogin(); return; }
+  if (event === "SIGNED_OUT" || !session) { me = null; booted = false; renderLogin(loginMsg); loginMsg = ""; return; }
   if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && !booted) {
     booted = true;
     setTimeout(async () => { if (await loadMe(session.user)) { view = { tab: isTeacher() ? "students" : "home" }; openFromHash() || render(); } }, 0);
@@ -637,8 +650,12 @@ function lev(a,b){
 function checkTyped(given, w){
   const g = clean(given); if (!g) return { kind:"bad" };
   // accept any word in the deck that shares this English meaning
-  const pool = deck().filter(x => x.en === w.en).flatMap(x => variants(x.ua));
-  if (pool.includes(g)) return { kind:"ok" };
+  const syn = deck().filter(x => meaningOf(x.en) === meaningOf(w.en));
+  const pool = syn.flatMap(x => variants(x.ua));
+  if (pool.includes(g)) {
+    const hit = variants(w.ua).includes(g) ? w : syn.find(x => variants(x.ua).includes(g));
+    return hit && hit.id !== w.id ? { kind:"ok", syn: hit } : { kind:"ok" };
+  }
   if (pool.some(t => t.length > 4 && lev(g, t) === 1)) return { kind:"near" };
   const swapped = g.replace(/и/g,"і"), swapped2 = g.replace(/і/g,"и");
   if (pool.some(t => t === swapped || t === swapped2)) return { kind:"near", why:"iy" };
@@ -650,8 +667,8 @@ function prepQuestion(){
   if (rs.mix) rs.mode = shuffle(["type", "mc", ...(nounForms(w).length ? ["gender"] : []), ...(stressable(w) ? ["stress"] : [])])[0];
   if (rs.mode === "mc") {
     const dir = Math.random() < .5 ? "ua" : "en";
-    let pool = deck().filter(x => x.id !== w.id && x.en !== w.en);
-    if (pool.length < 3) pool = WORDS.filter(x => x.id !== w.id && x.en !== w.en);
+    let pool = deck().filter(x => x.id !== w.id && meaningOf(x.en) !== meaningOf(w.en));
+    if (pool.length < 3) pool = WORDS.filter(x => x.id !== w.id && meaningOf(x.en) !== meaningOf(w.en));
     const others = shuffle(pool).slice(0, 3);
     rs.q = { dir, options: shuffle([w, ...others]).map(x => ({ id: x.id, text: dir === "ua" ? x.en : ST(x.ua) })) };
   } else if (rs.mode === "gender") {
@@ -747,7 +764,9 @@ function feedback(a, w){
       : `<div class="fb bad">❌ <b>${esc(ST(rs.q.form))}</b> — ${GNAME[rs.q.g]}<br><span class="note">${I("Повториться в кінці.", "Comes back at the end.")}</span></div>`;
   } else if (rs.mode === "stress") {
     html = a.kind === "ok" ? `<div class="fb ok">✅ Правильно! ${esc(ST(rs.q.word))}</div>` : `<div class="fb bad">❌ ${I("Правильно:", "It's")} <b>${esc(ST(rs.q.word))}</b><br><span class="note">${I("Повториться в кінці.", "Comes back at the end.")}</span></div>`;
-  } else if (a.kind === "ok") html = `<div class="fb ok">✅ Правильно! ${rs.mode === "type" ? sol : sol + " = " + esc(w.en)}</div>`;
+  } else if (a.kind === "ok") html = a.syn
+      ? `<div class="fb ok">✅ Правильно! <b>${esc(ST(a.syn.ua))}</b> · ${I("також:", "also:")} ${sol}</div>`
+      : `<div class="fb ok">✅ Правильно! ${rs.mode === "type" ? sol : sol + " = " + esc(w.en)}</div>`;
   else if (a.kind === "near") html = `<div class="fb near">🟠 Майже! ${a.why === "iy" ? I("Зверни увагу на <b>и</b> та <b>і</b>.", "Watch <b>и</b> and <b>і</b>.") : I("Маленька помилка.", "Small typo.")} ${I("Правильно:", "Correct:")} ${sol}</div>`;
   else html = `<div class="fb bad">❌ ${I("Правильна відповідь:", "Correct:")} ${sol} = ${esc(w.en)}<br><span class="note">${I("Повториться в кінці.", "Comes back at the end.")}</span></div>`;
   return html + `<div class="row"><button class="btn" id="next">Далі →</button></div>`;
@@ -905,7 +924,7 @@ async function loadTeacher(){
   T.ledgerOK = !lg.error; T.ledger = {};
   if (!lg.error) for (const r of lg.data) (T.ledger[r.student_id] ||= []).push(r);
   const saved = !pr.error && pr.data && pr.data.value;
-  T.prices = saved && saved.v >= 3 ? { ...DEFAULT_PRICES, ...saved, packs: { ...DEFAULT_PRICES.packs, ...saved.packs }, months: { ...DEFAULT_PRICES.months, ...saved.months } } : { ...DEFAULT_PRICES };   // older saved prices were placeholders
+  T.prices = saved && saved.v >= 4 ? { ...DEFAULT_PRICES, ...saved, packs: { ...DEFAULT_PRICES.packs, ...saved.packs }, months: { ...DEFAULT_PRICES.months, ...saved.months } } : { ...DEFAULT_PRICES };   // older saved prices were placeholders
   // package expiry (supabase/migrate_3.sql) and founding students (stored with the settings, no migration needed)
   const [ex, fd, rg] = await Promise.all([
     sb.from("ledger").select("expires_on").limit(1),
@@ -916,10 +935,11 @@ async function loadTeacher(){
   T.founding = (!fd.error && fd.data && fd.data.value) || {};
   T.regions = (!rg.error && rg.data && rg.data.value) || {};
 }
-// Decisions doc (13 Nov 2026): single $20 · 4 for $72 (2 months) · 8 for $136 (3 months) · 16 for $256 (6 months) · pair $14 per person · founding −15% for 6 months.
+// Prices (Notion spec, 14 Nov 2026): single $25 · 4 for $92 (2 months) · 8 for $168 (3 months) · 16 for $320 (6 months) · founding −15% for 6 months.
+// Pair lessons were dropped; to bring them back, add `pair` (price per person) here, the toggle in openPackage and the row in openPrices.
 // The 32-class package is on hold until there's more content: add 32 back here and in DEFAULT_PRICES.
 const PACKS = [1, 4, 8, 16];
-const DEFAULT_PRICES = { v: 3, currency: "$", packs: { 1: 20, 4: 72, 8: 136, 16: 256 }, pair: 14, months: { 4: 2, 8: 3, 16: 6 }, founding: 15, foundingMonths: 6 };
+const DEFAULT_PRICES = { v: 4, currency: "$", packs: { 1: 25, 4: 92, 8: 168, 16: 320 }, months: { 4: 2, 8: 3, 16: 6 }, founding: 15, foundingMonths: 6 };
 const plusDays = (d, n) => { const x = new Date(d + "T12:00:00"); x.setDate(x.getDate() + n); return fmt(x); };
 const plusMonths = (d, n) => { const x = new Date(d + "T12:00:00"); x.setMonth(x.getMonth() + n); return fmt(x); };
 const lastPackage = id => (T.ledger[id] || []).find(r => r.kind === "package" && r.expires_on);
@@ -959,6 +979,30 @@ const MOVE = {
 };
 const moveOf = r => { const m = /^moved:(\w+)/.exec(r.note || ""); return m && MOVE[m[1]] ? m[1] : null; };
 const moveNote = r => (r.note || "").replace(/^moved:\w+\s*·?\s*/, "");
+// Access after a package ends (supabase/migrate_4.sql does the blocking and deleting every night)
+const BLOCK_AFTER_DAYS = 14, DELETE_AFTER_MONTHS = 12;
+const lastEnd = id => (T.ledger[id] || []).filter(r => r.kind === "package" && r.expires_on).map(r => r.expires_on).sort().pop() || null;
+function accessState(id){
+  const e = lastEnd(id); if (!e) return null;
+  const blockOn = plusDays(e, BLOCK_AFTER_DAYS + 1), deleteOn = plusMonths(e, DELETE_AFTER_MONTHS);
+  return { end: e, blockOn, deleteOn, blocked: daysTo(blockOn) <= 0, ending: daysTo(e) < 0 && daysTo(blockOn) > 0 };
+}
+function accessNote(id){
+  const a = accessState(id); if (!a) return "";
+  if (a.blocked) return `<span class="exp bad">🔒 blocked since ${dmy(a.blockOn)} · deletes on ${dmy(a.deleteOn)}</span>`;
+  if (a.ending) return `<span class="exp soon">package ended · login blocks on ${dmy(a.blockOn)}</span>`;
+  return "";
+}
+// Refund for unused classes: classes left × what one class cost in their latest package (founding discount included)
+function refundOf(id){
+  const left = balanceOf(id); if (left <= 0) return null;
+  const p = (T.ledger[id] || []).find(r => r.kind === "package" && r.delta > 0);
+  let per = null;
+  if (p && p.amount) per = Number(p.amount) / p.delta;
+  else { const P = T.prices.packs || {}, n = p ? p.delta : 1, base = P[n] != null ? P[n] / n : P[1];
+    if (base != null) per = foundingUntil(id) ? base * (100 - T.prices.founding) / 100 : base; }
+  return per == null ? null : { left, per: Math.round(per * 100) / 100, sum: Math.round(per * left * 100) / 100 };
+}
 async function saveFounding(){
   const { error } = await sb.from("app_settings").upsert({ key: "founding", value: T.founding, updated_at: new Date().toISOString() });
   if (error) toast("Couldn't save: " + error.message);
@@ -969,7 +1013,7 @@ const money = v => v === null || v === undefined || v === "" ? "" : `${T.prices.
 function monthSummary(){
   const m = new Date().toISOString().slice(0, 7); let held = 0, paid = 0;
   for (const rows of Object.values(T.ledger)) for (const r of rows) if (String(r.created_at).slice(0, 7) === m) {
-    if (r.kind === "class") held -= r.delta; if (r.kind === "package" && r.amount) paid += Number(r.amount); }
+    if (r.kind === "class") held -= r.delta; if ((r.kind === "package" || /^refund/.test(r.note || "")) && r.amount) paid += Number(r.amount); }
   return { held, paid };
 }
 function studentStats(s){
@@ -1004,7 +1048,7 @@ function renderStudentList(){
          : `<p class="note" style="margin:-4px 0 12px">Class balances are off until you run <b>supabase/migrate_2.sql</b> in Supabase.</p>`}
     <div class="tlist">${T.students.length ? T.students.map(s => { const st = studentStats(s);
       return `<button class="trow" data-s="${s.id}"><div><b>${esc(s.nickname)}</b> <span class="note">@${esc(s.username)}</span>
-        <div class="m2">Last active: ${ago(s.last_seen)} · ${st.un.size} lessons open${foundingUntil(s.id) ? " · ⭐ founding" : ""}${T.ledgerOK && expiryNote(s.id).includes("exp ") ? " · " + expiryNote(s.id) : ""}</div></div>
+        <div class="m2">Last active: ${ago(s.last_seen)} · ${st.un.size} lessons open${foundingUntil(s.id) ? " · ⭐ founding" : ""}${T.ledgerOK && accessNote(s.id) ? " · " + accessNote(s.id) : T.ledgerOK && expiryNote(s.id).includes("exp ") ? " · " + expiryNote(s.id) : ""}</div></div>
         <div class="nums">${T.ledgerOK ? `<div class="${balanceOf(s.id) <= 3 ? "lowbal" : ""}"><b>${balanceOf(s.id)}</b>classes</div>` : ""}<div><b>${st.level.toFixed(1)}%</b>to ${st.goal}</div><div><b>${st.due}</b>today</div><div><b>${st.learned}</b>learned</div></div></button>`; }).join("")
       : `<div class="empty"><div class="big">No students yet</div>Create your first student above.</div>`}</div>`;
   $("#add").onclick = openAddStudent;
@@ -1073,7 +1117,7 @@ function stageOf(s, st){
 const stamp = t => new Date(t).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 function ledgerRows(rows){
   return rows.map(r => `<div class="lrow"><span class="ld">${stamp(r.created_at)}</span>
-      <span class="lt">${moveOf(r) ? `↻ Moved: ${MOVE[moveOf(r)].label}${moveNote(r) ? ` · <span class="note">${esc(moveNote(r))}</span>` : ""}` : r.kind === "class" ? "Class held" : r.kind === "package" ? `Package +${r.delta}${r.expires_on ? ` · valid until ${dmy(r.expires_on)}` : ""}` : `Correction ${r.delta > 0 ? "+" : ""}${r.delta}`}${moveOf(r) ? "" : `${r.amount ? " · " + money(r.amount) : ""}${r.note ? ` · <span class="note">${esc(r.note)}</span>` : ""}`}</span>
+      <span class="lt">${moveOf(r) ? `↻ Moved: ${MOVE[moveOf(r)].label}${moveNote(r) ? ` · <span class="note">${esc(moveNote(r))}</span>` : ""}` : r.kind === "class" ? "Class held" : r.kind === "package" ? `Package +${r.delta}${r.expires_on ? ` · valid until ${dmy(r.expires_on)}` : ""}` : /^refund/.test(r.note || "") ? `↩ Refund ${r.delta}` : `Correction ${r.delta > 0 ? "+" : ""}${r.delta}`}${moveOf(r) ? "" : `${r.amount ? " · " + money(r.amount) : ""}${r.note && !/^refund$/.test(r.note) ? ` · <span class="note">${esc(r.note)}</span>` : ""}`}</span>
       <span class="lv ${r.delta < 0 ? "neg" : r.delta === 0 ? "" : "pos"}">${r.delta === 0 ? "0" : (r.delta > 0 ? "+" : "") + r.delta}</span><button class="lx" data-del="${r.id}" title="Delete">✕</button></div>`).join("");
 }
 function wireLedgerDelete(s, root, redraw){
@@ -1095,12 +1139,13 @@ function drawClasses(s){
   const bal = balanceOf(s.id), all = T.ledger[s.id] || [];
   box.innerHTML = `<h3>Classes</h3>
     <div class="balbig ${bal <= 3 ? "low" : ""}"><b>${bal}</b><span>${bal < 0 ? "classes owed" : bal === 1 ? "class left" : "classes left"}</span></div>
-    ${expiryNote(s.id) ? `<p class="note" style="margin:-6px 0 10px">${expiryNote(s.id)}</p>` : ""}
+    ${accessNote(s.id) ? `<p class="note" style="margin:-6px 0 10px">${accessNote(s.id)}</p>` : expiryNote(s.id) ? `<p class="note" style="margin:-6px 0 10px">${expiryNote(s.id)}</p>` : ""}
     <div class="founding">${foundingUntil(s.id)
       ? `<span class="fchip">⭐ Founding price −${T.prices.founding}% · ${foundingText(s.id)}</span><button class="linkbtn" id="funset">Remove</button>`
       : `<button class="linkbtn" id="fset">⭐ Mark as founding student (−${T.prices.founding}% for ${T.prices.foundingMonths} months)</button>`}</div>
     <div class="row two"><button class="btn blue" id="held">✓ Class held<br><small>−1 class</small></button><button class="btn ghost" id="pack">＋ Package<br><small>add classes</small></button></div>
     <div class="row"><button class="btn ghost small" id="moved">↻ Class moved or cancelled</button></div>
+    ${refundOf(s.id) ? `<p class="note region">↩ Refund if they stop: ${refundOf(s.id).left} × ${money(refundOf(s.id).per)} = <b>${money(refundOf(s.id).sum)}</b> · <button class="linkbtn inline" id="refund">record refund</button></p>` : ""}
     <p class="note region">📍 ${regionText(s.id) ? esc(regionText(s.id)) : "Region not set"} · <button class="linkbtn inline" id="regset">${regionText(s.id) ? "change" : "set"}</button></p>
     ${bal <= 3 ? `<div class="row"><button class="btn ghost small" id="remind">✉️ Send a reminder</button></div>` : ""}
     ${all.length ? `<div class="ledger">${ledgerRows(all.slice(0, 3))}</div>
@@ -1109,6 +1154,7 @@ function drawClasses(s){
   $("#pack").onclick = () => openPackage(s);
   $("#moved").onclick = () => openMoved(s);
   $("#regset").onclick = () => openRegion(s);
+  if ($("#refund")) $("#refund").onclick = () => openRefund(s);
   if ($("#fset")) $("#fset").onclick = async () => {
     const first = [...(T.ledger[s.id] || [])].reverse().find(r => r.kind === "package");   // ledger is newest first
     T.founding[s.id] = first ? plusMonths(fmt(new Date(first.created_at)), T.prices.foundingMonths) : "pending";
@@ -1177,6 +1223,19 @@ function openMoved(s){
     closeModal(); toast(msg); renderStudent();
   };
 }
+function openRefund(s){
+  const r = refundOf(s.id); if (!r) return;
+  openModal(`<h2>Refund</h2><p class="sub">${esc(s.nickname)} stops: ${r.left} unused ${r.left === 1 ? "class" : "classes"} × ${money(r.per)}.</p>
+    <label class="f" for="rfa">Amount refunded</label><input class="field" id="rfa" type="number" inputmode="decimal" value="${r.sum}">
+    <p class="note">Records the refund and sets their classes to 0. Send the money yourself from the ФОП account.</p>
+    <div class="row two"><button class="btn ghost" id="rfx">Cancel</button><button class="btn blue" id="rfok">Record refund</button></div>`);
+  $("#rfx").onclick = closeModal;
+  $("#rfok").onclick = async () => {
+    $("#rfok").disabled = true;
+    const ok = await addLedger(s, { delta: -r.left, kind: "fix", amount: -Math.abs(Number($("#rfa").value) || 0), note: "refund" });
+    if (ok) { closeModal(); toast("Refund recorded"); renderStudent(); } else $("#rfok").disabled = false;
+  };
+}
 function openRegion(s){
   const r = T.regions[s.id] || {};
   openModal(`<h2>Where ${esc(s.nickname)} lives</h2><p class="sub">Used for the air-raid alert rule. Ask on the intro call; the student tells you when it changes.</p>
@@ -1195,7 +1254,6 @@ function openPackage(s){
   const P = T.prices.packs || {}, M = T.prices.months || {}, fu = foundingUntil(s.id), cur = T.prices.currency || "";
   openModal(`<h2>New package</h2><p class="sub">for ${esc(s.nickname)}</p>
     <div class="seg">${PACKS.map(n => `<button data-n="${n}">${n === 1 ? "1 · single" : n}</button>`).join("")}</div>
-    <label class="toggle"><input type="checkbox" id="ppair"><span class="tt">Pair lesson<span>${money(T.prices.pair)} per person per class</span></span></label>
     ${fu ? `<label class="toggle"><input type="checkbox" id="pfound" checked><span class="tt">⭐ Founding price −${T.prices.founding}%<span>${foundingText(s.id)}</span></span></label>` : ""}
     <label class="f" for="pn">Classes (a negative number corrects the balance)</label><input class="field" id="pn" type="number" inputmode="numeric" value="8">
     <label class="f" for="pa">Paid ${esc(cur)}</label><input class="field" id="pa" type="number" inputmode="decimal" placeholder="optional">
@@ -1206,8 +1264,8 @@ function openPackage(s){
     <div class="row two"><button class="btn ghost" id="pc">Cancel</button><button class="btn blue" id="pok">Add</button></div>`);
   let n = 8;
   const price = () => {
-    const pair = $("#ppair").checked, found = $("#pfound") && $("#pfound").checked;
-    let v = pair ? (T.prices.pair || 0) * n : P[n] ?? (P[1] ? P[1] * n : null);
+    const found = $("#pfound") && $("#pfound").checked;
+    let v = P[n] ?? (P[1] ? P[1] * n : null);
     if (v !== null && found) v = Math.round(v * (100 - T.prices.founding)) / 100;
     $("#pa").value = v ?? "";
   };
@@ -1217,12 +1275,12 @@ function openPackage(s){
   document.querySelectorAll("[data-n]").forEach(b => b.onclick = () => pick(+b.dataset.n)); pick(8);
   $("#pn").oninput = () => { n = parseInt($("#pn").value, 10) || 0; price();
     document.querySelectorAll("[data-n]").forEach(b => b.classList.toggle("on", +b.dataset.n === n)); };
-  $("#ppair").onchange = price; if ($("#pfound")) $("#pfound").onchange = price;
+  if ($("#pfound")) $("#pfound").onchange = price;
   $("#pc").onclick = closeModal;
   $("#pok").onclick = async () => {
     const k = parseInt($("#pn").value, 10), a = $("#pa").value === "" ? null : Number($("#pa").value);
     if (!k) { $("#perr").textContent = "Enter the number of classes."; return; }
-    const tags = [$("#ppair").checked ? "pair" : "", $("#pfound") && $("#pfound").checked ? `founding −${T.prices.founding}%` : ""].filter(Boolean);
+    const tags = [$("#pfound") && $("#pfound").checked ? `founding −${T.prices.founding}%` : ""].filter(Boolean);
     const note = [...tags, $("#pnote").value.trim()].filter(Boolean).join(" · ") || null;
     const row = { delta: k, kind: k > 0 ? "package" : "fix", amount: a, note };
     if (T.expiryOK && k > 0 && $("#pe").value) row.expires_on = $("#pe").value;
@@ -1255,7 +1313,6 @@ function openPrices(){
     <div class="ptable">${PACKS.map(n => `<div class="prow"><span class="pn">${n === 1 ? "Single class" : n + " classes"}</span>
       <input class="field" data-p="${n}" type="number" inputmode="decimal" value="${P[n] ?? ""}" placeholder="—"><span class="pper" id="pp${n}"></span></div>
       ${n > 1 ? `<div class="prow sub2"><span class="pn">valid for</span><input class="field" data-w="${n}" type="number" inputmode="numeric" value="${M[n] ?? ""}" placeholder="—"><span class="pper">months</span></div>` : ""}`).join("")}
-      <div class="prow"><span class="pn">Pair, per person</span><input class="field" id="ppairp" type="number" inputmode="decimal" value="${T.prices.pair ?? ""}" placeholder="—"><span class="pper">per class</span></div>
       <div class="prow"><span class="pn">Founding discount</span><input class="field" id="pfd" type="number" inputmode="numeric" value="${T.prices.founding ?? 15}"><span class="pper">% for</span></div>
       <div class="prow sub2"><span class="pn"></span><input class="field" id="pfm" type="number" inputmode="numeric" value="${T.prices.foundingMonths ?? 6}"><span class="pper">months</span></div></div>
     ${T.ledgerOK ? "" : `<p class="note">Run <b>supabase/migrate_2.sql</b> first, then prices can be saved.</p>`}
@@ -1271,7 +1328,7 @@ function openPrices(){
     const packs = {}, months = {};
     PACKS.forEach(n => { const v = num(document.querySelector(`[data-p="${n}"]`).value); if (v !== undefined) packs[n] = v;
       const w = document.querySelector(`[data-w="${n}"]`); if (w && num(w.value)) months[n] = num(w.value); });
-    const value = { v: 3, currency: $("#pcur").value.trim() || "$", packs, months, pair: num($("#ppairp").value),
+    const value = { v: 4, currency: $("#pcur").value.trim() || "$", packs, months,
       founding: num($("#pfd").value) ?? 15, foundingMonths: num($("#pfm").value) ?? 6 };
     const { error } = await sb.from("app_settings").upsert({ key: "prices", value, updated_at: new Date().toISOString() });
     if (error) { $("#prerr").textContent = error.message; return; }
