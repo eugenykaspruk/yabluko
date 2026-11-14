@@ -856,6 +856,19 @@ function renderLesson(){
   else if (view.game === "pairs") gPairs(box, l);
   else gQuiz(box, l, +view.game.slice(1));
 }
+/* "Next" between the games of a lesson; after the last game: the next open lesson, or home */
+function nextStep(l, k){
+  const g = games(l), at = g.findIndex(x => x.k === k), nx = g[at + 1];
+  if (nx) return { label: `${L("Далі", "Next")}: ${at + 2} · ${esc(TT(nx.t))} →`, go: () => { view.game = nx.k; renderLesson(); window.scrollTo(0, 0); } };
+  const nl = LESSONS[LIDX[l.code] + 1];
+  if (nl && unlocked.has(nl.code)) return { label: `${L("Наступний урок", "Next lesson")}: ${nl.code} →`, go: () => { view = { tab: "lesson", code: nl.code, game: "words", from: view.from }; render(); window.scrollTo(0, 0); } };
+  return { label: `✓ ${L("Урок завершено", "Lesson finished")} · ${L("На головну", "Home")}`, go: () => goHome() };
+}
+function nextBtn(box, l, k, strong){
+  const n = nextStep(l, k), d = document.createElement("div"); d.className = "row nextrow";
+  d.innerHTML = `<button class="btn ${strong ? "blue" : "ghost"}" id="gnext">${n.label}</button>`;
+  box.append(d); d.querySelector("button").onclick = n.go; return d.querySelector("button");
+}
 function gWords(box, l){
   let deckL = l.words.map((w, idx) => [ST(w[0]), w[1], w[0], idx]), i = 0;
   box.innerHTML = `<p class="note" style="margin:0 0 10px">${I("Прочитай кожне слово вголос і натисни на картку. Нові слова також додаються до щоденного повторення.", "Read each word aloud, then tap the card. New words also go into your daily review.")}</p>
@@ -866,7 +879,7 @@ function gWords(box, l){
   $("#wc").onclick = () => { $("#wb").classList.toggle("hidden"); speak(deckL[i][2]); };
   $("#wnext").onclick = () => { i = (i+1) % deckL.length; show(); };
   $("#wprev").onclick = () => { i = (i-1+deckL.length) % deckL.length; show(); };
-  show();
+  show(); nextBtn(box, l, "words", gamePctFrom(prog[l.code] || {}, l, "words") >= 80);
 }
 function gPairs(box, l){
   const P = l.pairs.items.map(x => [ST(X(x[0])), ST(X(x[1]))]);
@@ -877,11 +890,13 @@ function gPairs(box, l){
       if (!sel || sel.dataset.s === s) { if (sel) sel.classList.remove("sel"); sel = b; b.classList.add("sel"); return; }
       tries++;
       if (sel.dataset.i === b.dataset.i) { [sel, b].forEach(x => { x.classList.remove("sel"); x.classList.add("done"); }); done++; markItem(l.code, "p#" + b.dataset.i); sel = null;
-        if (done === P.length) { $("#mFb").textContent = STAGE >= 2 ? `Чудово! Усі пари. Спроб: ${tries}.` : "Чудово! " + F("All pairs in {0} tries.", tries); }
+        if (done === P.length) { $("#mFb").textContent = STAGE >= 2 ? `Чудово! Усі пари. Спроб: ${tries}.` : "Чудово! " + F("All pairs in {0} tries.", tries);
+          const nb = $("#gnext"); nb.classList.replace("ghost", "blue"); nb.scrollIntoView({ behavior: "smooth", block: "center" }); }
       } else { const a = sel; [a, b].forEach(x => x.classList.add("wrong")); setTimeout(() => [a, b].forEach(x => x.classList.remove("wrong", "sel")), 350); sel = null; } };
     return b; }
   shuffle(P.map((x,i) => [x[0], i])).forEach(([t,i]) => $("#mL").append(tile(t, i, "L")));
   shuffle(P.map((x,i) => [x[1], i])).forEach(([t,i]) => $("#mR").append(tile(t, i, "R")));
+  nextBtn(box, l, "pairs", false);
 }
 function gQuiz(box, l, qi){
   const Q = l.quizzes[qi]; let order, i, score;
@@ -891,8 +906,8 @@ function gQuiz(box, l, qi){
       const pct = score / order.length * 100;
       box.innerHTML = `<div class="card"><div class="big" style="font-family:'Noto Serif',serif;font-size:26px">${score} / ${order.length}</div>
         <div class="note">${pct === 100 ? "Відмінно!" : pct >= 80 ? I("Добре! Зараховано.", "Добре! Counts as done.") : I("Спробуй ще раз: потрібно 80%.", "Try again: 80% counts as done.")} · ${I(`гру пройдено на ${Math.round(gamePctFrom(prog[l.code] || {}, l, "q" + qi))}%`, F("{0}% of this game done", Math.round(gamePctFrom(prog[l.code] || {}, l, "q" + qi))))}</div></div>
-        <div class="row two"><button class="btn ghost" id="qb">Інша гра</button><button class="btn" id="qa">Ще раз</button></div>`;
-      $("#qa").onclick = start; $("#qb").onclick = () => { renderLesson(); }; return;
+        <div class="row"><button class="btn ghost" id="qa">${L("Ще раз", "Again")}</button></div>`;
+      $("#qa").onclick = start; nextBtn(box, l, "q" + qi, pct >= 80); return;
     }
     const [q0, ans0, own, idx] = order[i], q = X(q0), ans = X(ans0); let opts = (own || Q.opts).map(o => ST(X(o))); if (!Q.fixed) opts = shuffle(opts);
     box.innerHTML = `<div class="progress"><div style="width:${i / order.length * 100}%"></div></div>
