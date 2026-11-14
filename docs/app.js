@@ -416,10 +416,10 @@ function bookBar(){
   const opened = ls.filter(l => unlocked.has(l.code)).length;
   const done = ls.filter(l => lessonPct(l.code) >= 80).length;
   return `<div class="book">
-      <div class="lbl"><span>${L("Прогрес", "Progress")}</span><span><b>${pct < 1 && pct > 0 ? pct.toFixed(1) : Math.round(pct)}%</b> · ${done} / ${N} ${STAGE >= 1 ? "уроків" : X("lessons done")}</span></div>
+      <div class="lbl"><span><b>${pct < 1 && pct > 0 ? pct.toFixed(1) : Math.round(pct)}%</b> · ${done} / ${N} ${STAGE >= 1 ? "уроків" : X("lessons done")}</span></div>
       <div class="bbar"><div class="open" style="width:${opened / N * 100}%"></div><i style="width:${pct}%"></i>
         <div class="mark" style="left:100%"><span>${goal}</span></div></div>
-      <div class="legend2"><span><i style="background:var(--blue)"></i>${STAGE >= 1 ? "опрацьовано" : X("practised")}</span><span><i class="op"></i>${STAGE >= 1 ? "відкрито" : X("opened in class")} (${opened})</span>${BAL !== null ? `<span class="balchip ${BAL <= 3 ? "low" : ""}">🎟 ${Math.max(0, BAL)} ${STAGE >= 1 ? pl(Math.max(0, BAL), "заняття", "заняття", "занять") : X(BAL === 1 ? "class left" : "classes left")}</span>` : ""}</div>
+      <div class="legend2"><span><i style="background:var(--blue)"></i>${STAGE >= 1 ? "опрацьовано" : X("practised")}</span><span><i class="op"></i>${STAGE >= 1 ? "відкрито" : X("opened in class")} (${opened})</span></div>
     </div>`;
 }
 function render(){
@@ -432,7 +432,7 @@ function render(){
   $("#app").innerHTML = `
     <div class="head">
       <div><h1>Привіт, ${esc(me.nickname)}!</h1>${isTeacher() ? `<p class="sub" style="margin:0">Teacher preview · nothing here is saved</p>` : ""}</div>
-      <div class="who">${isTeacher() ? `<button class="chip" id="toT">👩‍🏫 Students</button>` : ""}<button class="chip" id="settings" aria-label="Settings">⚙️</button></div>
+      <div class="who">${isTeacher() ? `<button class="chip" id="toT">👩‍🏫 Students</button>` : ""}${!isTeacher() && BAL !== null ? `<span class="balchip ${BAL <= 3 ? "low" : ""}">${STAGE >= 1 ? "Баланс" : X("Balance")}: <b>${Math.max(0, BAL)}</b></span>` : ""}<button class="chip" id="settings" aria-label="Settings">⚙️</button></div>
     </div>
     ${inSession || view.tab === "lesson" || view.tab === "list" || view.tab === "lessons" ? "" : bookBar()}
     <section id="main"></section>`;

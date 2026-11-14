@@ -261,8 +261,10 @@ h3.sec small{font-family:"Noto Sans",sans-serif;font-size:13px;font-weight:500;c
 .stress .sw{display:inline-flex;align-items:center;white-space:nowrap;margin:0 .35em}
 
 /* class balance */
-.legend2 .balchip{margin-left:auto;font-weight:700;color:var(--ink);white-space:nowrap}
-.legend2 .balchip.low{color:var(--orange)}
+.who .balchip{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:14px;color:var(--muted);white-space:nowrap}
+.who .balchip b{color:var(--ink);font-size:16px}
+.who .balchip.low{border-color:var(--orange)}
+.who .balchip.low b{color:var(--orange)}
 .balbar{background:var(--yellow-soft);border:1px solid var(--yellow);border-radius:12px;padding:10px 14px;font-size:14px;font-weight:600;margin:0 0 12px}
 .balbar.zero{background:color-mix(in srgb,var(--red) 12%,var(--card));border-color:var(--red)}
 .balbig{display:flex;align-items:baseline;gap:8px;margin:4px 0 12px}
