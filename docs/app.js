@@ -859,9 +859,9 @@ function renderLesson(){
 /* "Next" between the games of a lesson; after the last game: the next open lesson, or home */
 function nextStep(l, k){
   const g = games(l), at = g.findIndex(x => x.k === k), nx = g[at + 1];
-  if (nx) return { label: `${L("Далі", "Next")}: ${at + 2} · ${esc(TT(nx.t))} →`, go: () => { view.game = nx.k; renderLesson(); window.scrollTo(0, 0); } };
+  if (nx) return { label: `${L("Далі", "Next")} →`, go: () => { view.game = nx.k; renderLesson(); window.scrollTo(0, 0); } };
   const nl = LESSONS[LIDX[l.code] + 1];
-  if (nl && unlocked.has(nl.code)) return { label: `${L("Наступний урок", "Next lesson")}: ${nl.code} →`, go: () => { view = { tab: "lesson", code: nl.code, game: "words", from: view.from }; render(); window.scrollTo(0, 0); } };
+  if (nl && unlocked.has(nl.code)) return { label: `${L("Наступний урок", "Next lesson")} →`, go: () => { view = { tab: "lesson", code: nl.code, game: "words", from: view.from }; render(); window.scrollTo(0, 0); } };
   return { label: `✓ ${L("Урок завершено", "Lesson finished")} · ${L("На головну", "Home")}`, go: () => goHome() };
 }
 function nextBtn(box, l, k, strong){
