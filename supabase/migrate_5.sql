@@ -8,3 +8,17 @@ alter table public.profiles add constraint profiles_lang_check check (lang in ('
 grant update (lang) on public.profiles to authenticated;
 -- the teacher marks test students in the student card (profiles.is_test, added in migrate_4.sql)
 grant update (is_test) on public.profiles to authenticated;
+-- only the teacher may change is_test (otherwise a student could mark themselves as a test login to avoid the block)
+create or replace function public.guard_is_test() returns trigger
+  language plpgsql security definer set search_path = public as
+$$
+begin
+  if new.is_test is distinct from old.is_test and not public.is_teacher() then
+    new.is_test := old.is_test;
+  end if;
+  return new;
+end
+$$;
+drop trigger if exists guard_is_test on public.profiles;
+create trigger guard_is_test before update on public.profiles
+  for each row execute function public.guard_is_test();
