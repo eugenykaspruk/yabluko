@@ -858,10 +858,11 @@ function renderLessons_unused(){
 }
 function renderLesson(){
   const l = BYCODE[view.code], g = games(l), rec = prog[l.code] || {};
-  $("#main").innerHTML = `<div class="top"><button id="backL">← Назад</button><span id="lpct">${lessonPct(l.code)}%</span><span></span></div>
+  $("#main").innerHTML = `<div class="top"><button id="backL">← Назад</button><span id="lpct">${lessonPct(l.code)}%</span>${(GRAMMAR[l.code] || []).length ? `<button class="gbtn" id="gram" aria-label="Grammar">📖</button>` : "<span></span>"}</div>
     <h2 style="margin-bottom:2px">${l.code} · ${esc(ST(l.ua))}</h2><p class="sub">${esc(l.en)}</p>
     <div class="gtabs">${g.map((x,i) => `<button data-k="${x.k}" class="${view.game === x.k ? "on" : ""}"><span class="num n${i % 7}">${i+1}</span>${esc(TT(x.t))}${gamePctFrom(rec, l, x.k) >= 80 ? '<span class="ck">✓</span>' : ""}</button>`).join("")}</div>
     <div id="game"></div>`;
+  if ($("#gram")) $("#gram").onclick = () => openGrammar(l.code);
   $("#backL").onclick = () => { if (view.from === "lessons") { view = { tab: "lessons" }; render(); window.scrollTo(0, 0); } else goHome(); };
   document.querySelectorAll(".gtabs button").forEach(b => b.onclick = () => { view.game = b.dataset.k; renderLesson(); });
   const box = $("#game");
@@ -918,12 +919,43 @@ function gQuiz(box, l, qi){
       b.classList.add(ok ? "ok" : "bad");
       if (!ok) box.querySelectorAll("[data-o]").forEach(x => { if (plain(x.dataset.o) === plain(ans)) x.classList.add("ok"); });
       const full = ST(q).replace(/<span[^>]*>[^<]*<\/span>/g, "").replace("___", ST(ans)).trim();
-      $("#qfb").innerHTML = `<div class="fb ${ok ? "ok" : "bad"}">${ok ? "✅ Правильно!" : "❌"} ${q.includes("___") ? esc(full) : I("Відповідь: ", "Answer: ") + "<b>" + esc(ST(ans)) + "</b>"}</div>
+      const topic = (GRAMMAR[l.code] || []).find(t => t.game === "q" + qi);
+      $("#qfb").innerHTML = `<div class="fb ${ok ? "ok" : "bad"}">${ok ? "✅ Правильно!" : "❌"} ${q.includes("___") ? esc(full) : I("Відповідь: ", "Answer: ") + "<b>" + esc(ST(ans)) + "</b>"}
+          ${!ok && topic ? `<br><button class="linkbtn" id="qrule">📖 ${L("Правило", "See the rule")}</button>` : ""}</div>
         <div class="row"><button class="btn" id="qn">Далі →</button></div>`;
+      if ($("#qrule")) $("#qrule").onclick = () => openGrammar(l.code, topic.id);
       $("#qn").onclick = () => { i++; step(); }; $("#qn").focus();
     });
   }
   start();
+}
+
+/* =====================================================================
+   GRAMMAR PANEL (📖 in a lesson): this lesson's topics, or every topic up to the newest open lesson
+   ===================================================================== */
+function gTopic(t, code){
+  const lg = LANG === "es" ? "es" : "en";
+  const tbl = t.table ? `<table class="gt">${t.table.map((r, i) => `<tr>${r.map(c => i === 0 && t.table[0][0] === "" ? `<th>${esc(c)}</th>` : `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</table>` : "";
+  const ex = (t.ex || []).map(([ua, en, es]) => `<div class="gex">${ukVoice ? `<button class="gsay" data-say="${esc(ua)}" aria-label="Listen">🔊</button>` : ""}<div><b>${esc(ua)}</b><span>${esc(lg === "es" ? es : en)}</span></div></div>`).join("");
+  return `<div class="gtopic" id="gt-${t.id}">
+    <h3>${esc(t.ua)} <small>${esc(t[lg])}</small></h3>
+    <p>${t.rule[lg]}</p>${tbl}${ex}
+    ${t.cmp ? `<div class="gcmp"><b>${lg === "es" ? "🇪🇸 Si hablas español" : "🇬🇧 If you speak English"}</b><br>${t.cmp[lg]}</div>` : ""}
+    ${t.game && code ? `<button class="btn ghost small" data-play="${code}|${t.game}">${L("Практикуй", "Practise this")} →</button>` : ""}</div>`;
+}
+function openGrammar(code, focus, all){
+  const lastOpen = LESSONS.filter(l => unlocked.has(l.code) && GRAMMAR[l.code]).map(l => l.code);
+  const list = all ? lastOpen : [code];
+  openModal(`<div class="ghead"><h2>📖 ${L("Граматика", "Grammar")}</h2><button class="setback" id="gclose">✕</button></div>
+    <div class="seg"><button class="${all ? "" : "on"}" id="gthis">${L("Цей урок", "This lesson")} ${code}</button><button class="${all ? "on" : ""}" id="gall">${L("Усі теми", "All topics")}</button></div>
+    ${list.map(c => `${all ? `<h3 class="sec">${c} · ${esc(ST(BYCODE[c].ua))}</h3>` : ""}${(GRAMMAR[c] || []).map(t => gTopic(t, c)).join("")}`).join("") || `<p class="note">${I("Тут поки нічого немає.", "Nothing here yet.")}</p>`}`);
+  const sh = $("#sheet"); wireSpeak(sh);
+  $("#gclose").onclick = closeModal;
+  $("#gthis").onclick = () => openGrammar(code);
+  $("#gall").onclick = () => openGrammar(code, null, true);
+  sh.querySelectorAll("[data-play]").forEach(b => b.onclick = () => {
+    const [c, g] = b.dataset.play.split("|"); closeModal(); view = { ...view, tab: "lesson", code: c, game: g }; render(); window.scrollTo(0, 0); });
+  if (focus) setTimeout(() => { const t = document.getElementById("gt-" + focus); if (t) { t.scrollIntoView({ block: "start" }); t.classList.add("flash"); } }, 50);
 }
 
 /* =====================================================================

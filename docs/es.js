@@ -3,6 +3,12 @@
    ES_WORDS: word meanings, keyed by word id (lesson:word without stress marks).
    Nouns take the article (la familia); neutral Spanish, no regional words. Missing keys fall back to English. */
 const ES_UI = {
+ "Grammar": "Gramática",
+ "This lesson": "Esta lección",
+ "All topics": "Todos los temas",
+ "Practise this": "Practica esto",
+ "See the rule": "Ver la regla",
+ "Nothing here yet.": "Aquí todavía no hay nada.",
  "Words": "Palabras",
  "Pairs": "Parejas",
  "Couldn't save, check your connection": "No se pudo guardar, revisa tu conexión",

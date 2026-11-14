@@ -307,3 +307,22 @@ textarea.field{width:100%;padding:12px 14px;border-radius:12px;border:1px solid 
 /* No double-tap zoom anywhere (pinch zoom still works); the keypad never zooms on quick taps */
 html{touch-action:manipulation}
 .kbswitch{display:block;margin:8px auto 0;border:0;background:none;color:var(--muted);font-size:13px;padding:6px 10px;text-decoration:underline;touch-action:manipulation}
+
+/* grammar panel */
+.gbtn{width:40px;height:40px;border-radius:50% !important;padding:0 !important;font-size:18px !important;display:flex;align-items:center;justify-content:center;justify-self:end}
+.ghead{display:flex;justify-content:space-between;align-items:center}
+.ghead h2{margin:0}
+.gtopic{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px;background:var(--card)}
+.gtopic h3{margin:0 0 6px;font-family:"Noto Serif",serif}
+.gtopic h3 small{display:block;font-family:"Noto Sans",sans-serif;font-weight:500;font-size:13px;color:var(--muted)}
+.gtopic p{margin:0 0 10px;line-height:1.5}
+.gt{border-collapse:collapse;width:100%;margin:6px 0 10px;font-size:15px}
+.gt td,.gt th{border:1px solid var(--line);padding:6px 8px;text-align:left}
+.gt th{color:var(--muted);font-weight:600;font-size:13px}
+.gex{display:flex;gap:10px;align-items:center;margin:6px 0}
+.gex b{display:block;font-weight:600}
+.gex span{color:var(--muted);font-size:14px}
+.gsay{flex:none;border:1px solid var(--line);background:var(--soft);border-radius:999px;width:34px;height:34px;font-size:15px}
+.gcmp{background:var(--yellow-soft);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:14px;line-height:1.5}
+.gtopic .btn.small{margin-top:4px}
+.gtopic.flash{outline:3px solid var(--blue)}

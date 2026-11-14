@@ -53,6 +53,9 @@ board; this app is where students practise between classes.
   `ES_TEXT` (lesson titles, hints, quiz questions/answers, keyed by the English text) and `ES_WORDS`
   (word meanings keyed by word id). Missing keys fall back to English. New lessons need entries here too.
   Spanish: nouns with the article, neutral (no regional words).
+- `docs/grammar.js`: `GRAMMAR` = per-lesson grammar notes for the 📖 button in a lesson (rule in English
+  and Spanish, a Ukrainian table, examples, a comparison with English or Spanish, and the game that practises
+  it). A wrong quiz answer links to the topic whose `game` is that quiz. Add topics for every new lesson.
 - `docs/config.js`: Supabase URL + publishable key (public by design; access is
   enforced by Row Level Security)
 - `supabase/setup.sql`: tables `profiles`, `unlocks`, `progress`, `cards`; RLS policies
