@@ -314,8 +314,6 @@ function autoStage(){
 }
 function computeStage(){
   if (!me || isTeacher()) return 0;
-  if (me.ui_choice === "bi") return 0;                              // the student asked for both languages
-  if (me.ui_override !== null && me.ui_override !== undefined) return me.ui_override;
   return autoStage();
 }
 const SEEN_KEY = () => "yabluko-seen-" + (me && me.id);
@@ -335,7 +333,6 @@ function congratulate(stage){
     : { h: "🏆 Вітаємо з рівнем A1!", ua: "Тепер увесь додаток — українською. Ти впораєшся!",
         en: "You reached A1! From now on the whole app is in Ukrainian." };
   openModal(`<div class="congrats"><div class="cbig">${t.h}</div><p>${t.ua}</p><p class="note">${X(t.en)}</p>
-    <p class="note">${I2("Якщо щось незрозуміло: ⚙️ → Мова", "If you get stuck: ⚙️ → App language")}</p>
     <div class="row"><button class="btn blue" id="cok">${I2("Чудово!", "Great!")}</button></div></div>`);
   $("#cok").onclick = closeModal;
 }
@@ -508,7 +505,7 @@ function openSettings(page){
   const back = `<button class="setback" id="sback">← ${L("Налаштування", "Settings")}</button>`;
   if (!page) {
     const th = { auto: L("Авто", "Auto"), light: L("Світла", "Light"), dark: L("Темна", "Dark") }[getTheme()];
-    const lang = (LANG === "es" ? "Español" : "English") + " · " + (me.ui_choice === "bi" ? L("Двомовна", "Bilingual") : L("Авто", "Auto"));
+    const lang = LANG === "es" ? "Español" : "English";
     openModal(`<h2>${L("Налаштування", "Settings")}</h2>
       <p class="sub">${L("Логін", "Login name")}: <b>${esc(me.username)}</b></p>
       <div class="setlist">
@@ -524,29 +521,18 @@ function openSettings(page){
     return;
   }
   if (page === "lang") {
-    // always shown in both languages: this is the way back if a student gets stuck
-    const ch = me.ui_choice === "bi" ? "bi" : "auto";
+    // explanation language; how much Ukrainian the app uses is automatic (STAGE), no manual choice
     openModal(`<button class="setback" id="sback">← Налаштування · ${X("Settings")}</button><h2>Мова · ${X("App language")}</h2>
       <h3 class="sec" style="margin-top:6px">Мова пояснень <small>Explanations · Explicaciones</small></h3>
       <div class="setlist" id="xl">
         <button class="setrow ${LANG === "en" ? "on" : ""}" data-x="en"><span class="si">🇬🇧</span><span class="st">English<small>Explanations in English</small></span><span class="sa">${LANG === "en" ? "✓" : ""}</span></button>
         <button class="setrow ${LANG === "es" ? "on" : ""}" data-x="es"><span class="si">🇪🇸</span><span class="st">Español<small>Explicaciones en español</small></span><span class="sa">${LANG === "es" ? "✓" : ""}</span></button>
       </div>
-      <h3 class="sec">Українська <small>${X("How much Ukrainian")}</small></h3>
-      <p class="sub">Коли ти завершуєш етапи на 100%, додаток поступово переходить на українську. · ${X("As you finish stages at 100%, the app gradually switches to Ukrainian.")}</p>
-      <div class="setlist" id="lang">
-        <button class="setrow ${ch === "auto" ? "on" : ""}" data-c="auto"><span class="si">🚀</span><span class="st">Авто<small>${X("Ukrainian grows with your progress")}</small></span><span class="sa">${ch === "auto" ? "✓" : ""}</span></button>
-        <button class="setrow ${ch === "bi" ? "on" : ""}" data-c="bi"><span class="si">🤝</span><span class="st">Двомовна<small>${X("Bilingual: Ukrainian and English")}</small></span><span class="sa">${ch === "bi" ? "✓" : ""}</span></button>
-      </div>`);
+      <p class="sub" style="margin-top:14px">Коли ти завершуєш етапи на 100%, додаток поступово переходить на українську. · ${X("As you finish stages at 100%, the app gradually switches to Ukrainian.")}</p>`);
     $("#xl").querySelectorAll("[data-x]").forEach(b => b.onclick = async () => {
       applyLang(b.dataset.x); me.lang = LANG;
       sb.from("profiles").update({ lang: LANG }).eq("id", me.id).then(() => {});   // needs supabase/migrate_5.sql
       render(); openSettings("lang");
-    });
-    $("#lang").querySelectorAll("[data-c]").forEach(b => b.onclick = async () => {
-      me.ui_choice = b.dataset.c === "bi" ? "bi" : null;
-      sb.from("profiles").update({ ui_choice: me.ui_choice }).eq("id", me.id).then(() => {});
-      STAGE = computeStage(); render(); openSettings("lang");
     });
     $("#sback").onclick = () => openSettings();
     return;
@@ -1190,8 +1176,6 @@ function openAddStudent(){
   };
 }
 function stageOf(s, st){
-  if (s.ui_choice === "bi") return 0;
-  if (s.ui_override !== null && s.ui_override !== undefined) return s.ui_override;
   const full = ls => ls.length && ls.every(l => lessonPctFrom(st.pr, l.code) >= 100);
   const a1 = LESSONS.filter(l => unitOf(l.code) <= 6);
   if (a1.length === A1_MARK && full(a1)) return 2;
@@ -1463,9 +1447,7 @@ function renderStudent(){
           <div class="bars">${boxes.map((n,b) => `<div style="height:${n / maxB * 100}%" title="${n} words"><span>${b}</span></div>`).join("")}</div><div style="height:18px"></div></div>
         <div class="panel"><h3>Hardest words</h3>${weak.length ? weak.map(x => `<div class="toggle"><span class="tt">${esc(ST(x.w.ua))}<span>${esc(x.w.en)} · lesson ${x.w.lesson}</span></span><span class="pc">${x.c.lapses}× wrong</span></div>`).join("") : `<p class="note">No mistakes yet.</p>`}</div>
         <div class="panel"><h3>App language</h3>
-          <p class="note" style="margin-top:0">Now: <b>${["bilingual", "labels in Ukrainian", "all Ukrainian"][stageOf(s, st)]}</b>${s.ui_choice === "bi" ? " (the student chose bilingual)" : ""}. Automatic: labels turn Ukrainian after the Intro at 100%, everything at A1 at 100%.</p>
-          <select class="field" id="uiov">${[["", "Automatic"], ["0", "Bilingual"], ["1", "Labels in Ukrainian"], ["2", "All Ukrainian"]].map(([v, t]) =>
-            `<option value="${v}" ${String(s.ui_override ?? "") === v ? "selected" : ""}>${t}</option>`).join("")}</select>
+          <p class="note" style="margin-top:0">Now: <b>${["bilingual", "labels in Ukrainian", "all Ukrainian"][stageOf(s, st)]}</b>. It switches by itself: labels turn Ukrainian when the Intro is at 100%, everything at A1 at 100%.</p>
           <label class="f" for="slang">Explanations in</label>
           <select class="field" id="slang">${[["en", "English"], ["es", "Español"]].map(([v, t]) => `<option value="${v}" ${(s.lang || "en") === v ? "selected" : ""}>${t}</option>`).join("")}</select>
           ${s.lang === undefined ? `<p class="note">Run supabase/migrate_5.sql once to save this.</p>` : ""}</div>
@@ -1479,12 +1461,6 @@ function renderStudent(){
     drawClasses(s);
     $("#alll").onclick = () => { view = { tab: "student", id: s.id, sub: "lessons" }; renderStudent(); window.scrollTo(0, 0); };
     if ($("#opennext")) $("#opennext").onclick = async () => { if (await setLessons([nextL.code], true)) { toast(`${nextL.code} opened for ${s.nickname}`); renderStudent(); } };
-    $("#uiov").onchange = async e => {
-      const v = e.target.value === "" ? null : +e.target.value;
-      const { error } = await sb.from("profiles").update({ ui_override: v }).eq("id", s.id);
-      if (error) { toast("Couldn't save: " + error.message); return; }
-      s.ui_override = v; toast("Saved"); renderStudent();
-    };
     $("#istest").onchange = async e => {
       const v = e.target.checked, { error } = await sb.from("profiles").update({ is_test: v }).eq("id", s.id);
       if (error) { e.target.checked = !v; toast("Couldn't save: " + error.message); return; }
