@@ -665,6 +665,15 @@ function lev(a,b){
   for (let i=1;i<=a.length;i++) for (let j=1;j<=b.length;j++) d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1] + (a[i-1]===b[j-1]?0:1));
   return d[a.length][b.length];
 }
+// Capital letters count: proper names (Київ) and the polite Вас must be written as in the word list.
+// Only the first letter of a phrase (Добрий день!) is free, like the start of any sentence.
+const cleanC = s => plain(s).replace(/[’ʼ´`]/g,"'").replace(/\(.*?\)/g,"").replace(/[…?!.,]/g,"").replace(/\s+/g," ").trim();
+function caseOk(given, w){
+  const g = cleanC(given), lf = t => t.includes(" ") ? t.charAt(0).toLowerCase() + t.slice(1) : t;
+  const forms = String(w.ua).replace(/\(([^)]*)\)/g, "").split(/\s*\/\s*/).map(cleanC);
+  forms.push(cleanC(w.ua));
+  return forms.some(f => f === g || lf(f) === lf(g));
+}
 function checkTyped(given, w){
   const g = clean(given); if (!g) return { kind:"bad" };
   // accept any word in the deck that shares this English meaning
@@ -672,6 +681,8 @@ function checkTyped(given, w){
   const pool = syn.flatMap(x => variants(x.ua));
   if (pool.includes(g)) {
     const hit = variants(w.ua).includes(g) ? w : syn.find(x => variants(x.ua).includes(g));
+    // spelled right but with the wrong capital letters (київ, як вас звати): almost right
+    if (!caseOk(given, hit || w)) return { kind:"near", why:"case" };
     return hit && hit.id !== w.id ? { kind:"ok", syn: hit } : { kind:"ok" };
   }
   if (pool.some(t => t.length > 4 && lev(g, t) === 1)) return { kind:"near" };
@@ -702,7 +713,7 @@ function renderDrill(){
   if (rs.mode === "type") {
     body = `<div class="card"><div class="meta">Урок ${esc(w.lesson)} · Українською?</div><div class="front small">${esc(w.en)}</div></div>
       <input class="answer ${a ? a.kind : ""}" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="українською…" value="${a ? esc(a.given) : ""}" ${a ? "readonly" : TOUCH && !nativeKb() ? 'readonly inputmode="none"' : ""}>
-      ${a ? "" : `${nativeKb() ? "" : `<div class="kb">${KB_ROWS.map(r => `<div class="kr">${r.map(x => `<button data-c="${x}">${x}</button>`).join("")}</div>`).join("")}<div class="kr"><button class="sp" data-c=" ">${L("пробіл", "space")}</button><button class="bs" data-c="BS">⌫</button></div></div>`}
+      ${a ? "" : `${nativeKb() ? "" : `<div class="kb">${KB_ROWS.map(r => `<div class="kr">${r.map(x => `<button data-c="${x}">${x}</button>`).join("")}</div>`).join("")}<div class="kr"><button class="sh" data-c="SH" aria-label="Shift">⇧</button><button class="sp" data-c=" ">${L("пробіл", "space")}</button><button class="bs" data-c="BS">⌫</button></div></div>`}
       ${TOUCH ? `<button class="kbswitch" id="kbswitch">${nativeKb() ? "🇺🇦 " + L("Клавіатура додатка", "Use the app keyboard") : "⌨️ " + L("Моя клавіатура", "Use my phone keyboard")}</button>` : ""}`}
       ${a ? feedback(a, w) : `<div class="row two"><button class="btn ghost" id="skip">Не знаю</button><button class="btn" id="check">Перевірити</button></div>`}`;
   } else if (rs.mode === "mc") {
@@ -753,12 +764,19 @@ function renderDrill(){
     el.querySelectorAll("[data-c]").forEach(b => {
       b.onpointerdown = e => e.preventDefault();
       b.onclick = () => {
+        if (b.dataset.c === "SH") { shift = !shift; paintShift(); return; }
         const v = inp.value, at = document.activeElement === inp ? inp.selectionStart ?? v.length : v.length;
         const end = document.activeElement === inp ? inp.selectionEnd ?? at : at;
         if (b.dataset.c === "BS") { const from = end > at ? at : Math.max(0, at - 1); inp.value = v.slice(0, from) + v.slice(end); setCaret(inp, from); }
-        else { inp.value = v.slice(0, at) + b.dataset.c + v.slice(end); setCaret(inp, at + b.dataset.c.length); }
+        else { const c = shift ? b.dataset.c.toUpperCase() : b.dataset.c; inp.value = v.slice(0, at) + c + v.slice(end); setCaret(inp, at + c.length);
+          if (shift && b.dataset.c !== " ") { shift = false; paintShift(); } }
       };
     });
+    // ⇧ capitalises the next letter only, like a phone keyboard
+    let shift = false;
+    function paintShift(){ el.querySelectorAll(".kb [data-c]").forEach(k => { const c = k.dataset.c;
+      if (c.length === 1 && c !== " ") k.textContent = shift ? c.toUpperCase() : c; });
+      const sk = el.querySelector(".kb .sh"); if (sk) sk.classList.toggle("on", shift); }
     const ks = $("#kbswitch"); if (ks) { ks.onpointerdown = e => e.preventDefault(); ks.onclick = () => {
       const typed = inp.value; nativeKb(!nativeKb()); renderDrill(); const n = $("#ans"); n.value = typed;
       if (nativeKb()) { try { n.focus(); } catch(e){} } }; }
@@ -799,7 +817,7 @@ function feedback(a, w){
   } else if (a.kind === "ok") html = a.syn
       ? `<div class="fb ok">✅ Правильно! <b>${esc(ST(a.syn.ua))}</b> · ${I("також:", "also:")} ${sol}</div>`
       : `<div class="fb ok">✅ Правильно! ${rs.mode === "type" ? sol : sol + " = " + esc(w.en)}</div>`;
-  else if (a.kind === "near") html = `<div class="fb near">🟠 Майже! ${a.why === "iy" ? I("Зверни увагу на <b>и</b> та <b>і</b>.", "Watch <b>и</b> and <b>і</b>.") : I("Маленька помилка.", "Small typo.")} ${I("Правильно:", "Correct:")} ${sol}</div>`;
+  else if (a.kind === "near") html = `<div class="fb near">🟠 Майже! ${a.why === "iy" ? I("Зверни увагу на <b>и</b> та <b>і</b>.", "Watch <b>и</b> and <b>і</b>.") : a.why === "case" ? I("Зверни увагу на великі літери.", "Watch the capital letters.") : I("Маленька помилка.", "Small typo.")} ${I("Правильно:", "Correct:")} ${sol}</div>`;
   else html = `<div class="fb bad">❌ ${I("Правильна відповідь:", "Correct:")} ${sol} = ${esc(w.en)}<br><span class="note">${I("Повториться в кінці.", "Comes back at the end.")}</span></div>`;
   return html + `<div class="row"><button class="btn" id="next">Далі →</button></div>`;
 }

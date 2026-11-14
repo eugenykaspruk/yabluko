@@ -100,6 +100,8 @@ input.answer.ok{border-color:var(--green)} input.answer.bad{border-color:var(--r
 .kb button{touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;flex:1 1 0;min-width:0;max-width:46px;border:1px solid var(--line);background:var(--card);border-radius:8px;height:42px;font-size:17px;padding:0}
 .kb button.sp{max-width:260px;flex:6 1 0;font-size:13px;color:var(--muted)}
 .kb button.bs{max-width:80px;flex:1.5 1 0}
+.kb button.sh{max-width:80px;flex:1.5 1 0;font-size:18px}
+.kb button.sh.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
 
 .opts{display:grid;gap:8px;margin-top:12px}
 .opt{border:2px solid var(--line);background:var(--card);border-radius:12px;padding:14px;font-size:16px;text-align:left}

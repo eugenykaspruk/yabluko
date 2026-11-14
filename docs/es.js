@@ -3,6 +3,7 @@
    ES_WORDS: word meanings, keyed by word id (lesson:word without stress marks).
    Nouns take the article (la familia); neutral Spanish, no regional words. Missing keys fall back to English. */
 const ES_UI = {
+ "Watch the capital letters.": "Cuidado con las mayúsculas.",
  "Next": "Siguiente",
  "Next lesson": "Siguiente lección",
  "Lesson finished": "Lección terminada",
