@@ -8,6 +8,10 @@
 --   • 12 months after that end date, with no new package, the student and all their data are deleted
 --     (login, profile, progress, cards, unlocks, class history). This cannot be undone.
 -- Students who never had a package with an end date are never blocked or deleted by this.
+-- Test students (profiles.is_test, the 🧪 switch in the student card) are never blocked or deleted either.
+
+-- 🧪 test students: the teacher's own test logins
+alter table public.profiles add column if not exists is_test boolean not null default false;
 
 create extension if not exists pg_cron;
 
@@ -25,7 +29,7 @@ begin
   -- delete: 12 months after the last package ended
   for r in
     select p.id from public.profiles p
-    where p.role = 'student'
+    where p.role = 'student' and not p.is_test
       and public.last_package_end(p.id) is not null
       and public.last_package_end(p.id) + interval '12 months' < current_date
   loop
@@ -36,7 +40,7 @@ begin
   -- block: 14 days after the last package ended
   update auth.users u set banned_until = 'infinity'
   from public.profiles p
-  where p.id = u.id and p.role = 'student'
+  where p.id = u.id and p.role = 'student' and not p.is_test
     and public.last_package_end(p.id) is not null
     and public.last_package_end(p.id) + 14 < current_date
     and u.banned_until is null;
@@ -45,7 +49,7 @@ begin
   update auth.users u set banned_until = null
   from public.profiles p
   where p.id = u.id and p.role = 'student' and u.banned_until is not null
-    and public.last_package_end(p.id) + 14 >= current_date;
+    and (p.is_test or public.last_package_end(p.id) + 14 >= current_date);
 end
 $$;
 revoke all on function public.enforce_access() from public, anon, authenticated;

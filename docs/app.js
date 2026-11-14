@@ -1061,6 +1061,7 @@ const moveNote = r => (r.note || "").replace(/^moved:\w+\s*·?\s*/, "");
 const BLOCK_AFTER_DAYS = 14, DELETE_AFTER_MONTHS = 12;
 const lastEnd = id => (T.ledger[id] || []).filter(r => r.kind === "package" && r.expires_on).map(r => r.expires_on).sort().pop() || null;
 function accessState(id){
+  if (isTest(id)) return null;
   const e = lastEnd(id); if (!e) return null;
   const blockOn = plusDays(e, BLOCK_AFTER_DAYS + 1), deleteOn = plusMonths(e, DELETE_AFTER_MONTHS);
   return { end: e, blockOn, deleteOn, blocked: daysTo(blockOn) <= 0, ending: daysTo(e) < 0 && daysTo(blockOn) > 0 };
@@ -1088,9 +1089,10 @@ async function saveFounding(){
 }
 const balanceOf = id => (T.ledger[id] || []).reduce((s, r) => s + r.delta, 0);
 const money = v => v === null || v === undefined || v === "" ? "" : `${T.prices.currency || ""}${Number(v).toLocaleString()}`;
+const isTest = id => !!(T.students.find(x => x.id === id) || {}).is_test;   // 🧪 test students: left out of money and access rules
 function monthSummary(){
   const m = new Date().toISOString().slice(0, 7); let held = 0, paid = 0;
-  for (const rows of Object.values(T.ledger)) for (const r of rows) if (String(r.created_at).slice(0, 7) === m) {
+  for (const [id, rows] of Object.entries(T.ledger)) if (!isTest(id)) for (const r of rows) if (String(r.created_at).slice(0, 7) === m) {
     if (r.kind === "class") held -= r.delta; if ((r.kind === "package" || /^refund/.test(r.note || "")) && r.amount) paid += Number(r.amount); }
   return { held, paid };
 }
@@ -1122,10 +1124,10 @@ function renderStudentList(){
   view = { tab: "students" };
   const ms = T.ledgerOK ? monthSummary() : null;
   $("#tmain").innerHTML = `<div class="row" style="margin:16px 0"><button class="btn blue" id="add">＋ New student</button></div>
-    ${ms ? `<p class="note" style="margin:-4px 0 12px">This month: <b>${ms.held}</b> ${ms.held === 1 ? "class" : "classes"} held · <b>${money(ms.paid) || 0}</b> received</p>`
+    ${ms ? `<p class="note" style="margin:-4px 0 12px">This month: <b>${ms.held}</b> ${ms.held === 1 ? "class" : "classes"} held · <b>${money(ms.paid) || 0}</b> received${T.students.some(x => x.is_test) ? " · 🧪 test students not counted" : ""}</p>`
          : `<p class="note" style="margin:-4px 0 12px">Class balances are off until you run <b>supabase/migrate_2.sql</b> in Supabase.</p>`}
-    <div class="tlist">${T.students.length ? T.students.map(s => { const st = studentStats(s);
-      return `<button class="trow" data-s="${s.id}"><div><b>${esc(s.nickname)}</b> <span class="note">@${esc(s.username)}</span>
+    <div class="tlist">${T.students.length ? [...T.students].sort((a, b) => !!a.is_test - !!b.is_test).map(s => { const st = studentStats(s);
+      return `<button class="trow ${s.is_test ? "test" : ""}" data-s="${s.id}"><div><b>${s.is_test ? "🧪 " : ""}${esc(s.nickname)}</b> <span class="note">@${esc(s.username)}${s.is_test ? " · test" : ""}</span>
         <div class="m2">Last active: ${ago(s.last_seen)} · ${st.un.size} lessons open${foundingUntil(s.id) ? " · ⭐ founding" : ""}${T.ledgerOK && accessNote(s.id) ? " · " + accessNote(s.id) : T.ledgerOK && expiryNote(s.id).includes("exp ") ? " · " + expiryNote(s.id) : ""}</div></div>
         <div class="nums">${T.ledgerOK ? `<div class="${balanceOf(s.id) <= 3 ? "lowbal" : ""}"><b>${balanceOf(s.id)}</b>classes</div>` : ""}<div><b>${st.level.toFixed(1)}%</b>to ${st.goal}</div><div><b>${st.due}</b>today</div><div><b>${st.learned}</b>learned</div></div></button>`; }).join("")
       : `<div class="empty"><div class="big">No students yet</div>Create your first student above.</div>`}</div>`;
@@ -1468,7 +1470,10 @@ function renderStudent(){
           <select class="field" id="slang">${[["en", "English"], ["es", "Español"]].map(([v, t]) => `<option value="${v}" ${(s.lang || "en") === v ? "selected" : ""}>${t}</option>`).join("")}</select>
           ${s.lang === undefined ? `<p class="note">Run supabase/migrate_5.sql once to save this.</p>` : ""}</div>
         <div class="panel"><h3>Account</h3>
-          <div class="row two"><button class="btn ghost" id="rp">Reset password</button><button class="btn danger" id="del">Delete student</button></div></div>
+          <label class="toggle"><input type="checkbox" id="istest" ${s.is_test ? "checked" : ""}><span class="tt">🧪 Test student<span>Works like a real student, but classes and payments don't count in your totals, and the login is never blocked or deleted when a package ends.</span></span></label>
+          ${s.is_test === undefined ? `<p class="note">Run supabase/migrate_4.sql and migrate_5.sql once to save this.</p>` : ""}
+          <div class="row two"><button class="btn ghost" id="rp">Reset password</button><button class="btn ghost" id="rprog">Reset progress</button></div>
+          <div class="row"><button class="btn danger" id="del">Delete student</button></div></div>
       </div>`;
     $("#tb").onclick = () => renderStudentList();
     drawClasses(s);
@@ -1479,6 +1484,25 @@ function renderStudent(){
       const { error } = await sb.from("profiles").update({ ui_override: v }).eq("id", s.id);
       if (error) { toast("Couldn't save: " + error.message); return; }
       s.ui_override = v; toast("Saved"); renderStudent();
+    };
+    $("#istest").onchange = async e => {
+      const v = e.target.checked, { error } = await sb.from("profiles").update({ is_test: v }).eq("id", s.id);
+      if (error) { e.target.checked = !v; toast("Couldn't save: " + error.message); return; }
+      s.is_test = v; toast(v ? "Marked as a test student" : "Now a real student"); renderStudent();
+    };
+    $("#rprog").onclick = () => {
+      openModal(`<h2>Reset ${esc(s.nickname)}'s progress?</h2>
+        <p class="sub">This deletes their game scores and word memory (review boxes, hardest words), as if they had never practised.
+        Open lessons, class balance and history stay. It can't be undone.</p><div class="err" id="rperr"></div>
+        <div class="row two"><button class="btn ghost" id="rpc">Cancel</button><button class="btn danger" id="rpok">Reset progress</button></div>`);
+      $("#rpc").onclick = closeModal;
+      $("#rpok").onclick = async () => {
+        $("#rpok").disabled = true;
+        const [a, b] = await Promise.all([sb.from("progress").delete().eq("student_id", s.id), sb.from("cards").delete().eq("student_id", s.id)]);
+        if (a.error || b.error) { $("#rperr").textContent = (a.error || b.error).message; $("#rpok").disabled = false; return; }
+        delete T.progress[s.id]; delete T.cards[s.id];
+        closeModal(); toast("Progress reset"); renderStudent();
+      };
     };
     $("#slang").onchange = async e => {
       const v = e.target.value, { error } = await sb.from("profiles").update({ lang: v }).eq("id", s.id);
