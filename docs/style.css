@@ -97,7 +97,7 @@ input.answer:focus{outline:none;border-color:var(--ink)}
 input.answer.ok{border-color:var(--green)} input.answer.bad{border-color:var(--red)} input.answer.near{border-color:var(--orange)}
 .kb{display:flex;flex-direction:column;gap:5px;margin-top:10px}
 .kb .kr{display:flex;gap:4px;justify-content:center}
-.kb button{flex:1 1 0;min-width:0;max-width:46px;border:1px solid var(--line);background:var(--card);border-radius:8px;height:42px;font-size:17px;padding:0}
+.kb button{touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;flex:1 1 0;min-width:0;max-width:46px;border:1px solid var(--line);background:var(--card);border-radius:8px;height:42px;font-size:17px;padding:0}
 .kb button.sp{max-width:260px;flex:6 1 0;font-size:13px;color:var(--muted)}
 .kb button.bs{max-width:80px;flex:1.5 1 0}
 
@@ -303,3 +303,7 @@ textarea.field{width:100%;padding:12px 14px;border-radius:12px;border:1px solid 
 .prow.sub2 .pn{color:var(--muted);font-size:13px;padding-left:12px}
 .linkbtn.inline{padding:0;font-size:inherit}
 .note.region{margin:8px 0 4px}
+
+/* No double-tap zoom anywhere (pinch zoom still works); the keypad never zooms on quick taps */
+html{touch-action:manipulation}
+.kbswitch{display:block;margin:8px auto 0;border:0;background:none;color:var(--muted);font-size:13px;padding:6px 10px;text-decoration:underline;touch-action:manipulation}

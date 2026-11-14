@@ -633,6 +633,9 @@ function renderCards(){
 
 /* drills */
 // Standard Ukrainian (ЙЦУКЕН) layout, as on a phone or computer
+const TOUCH = matchMedia("(pointer: coarse)").matches;
+function nativeKb(v){ try { if (v !== undefined) localStorage.setItem("nativeKb", v ? "1" : ""); return !!localStorage.getItem("nativeKb"); } catch(e){ return false; } }
+function setCaret(inp, i){ if (document.activeElement !== inp) return; try { inp.setSelectionRange(i, i); } catch(e){} }
 const KB_ROWS = ["й ц у к е н г ш щ з х ї", "ф і в а п р о л д ж є", "ґ я ч с м и т ь б ю '"].map(r => r.split(" "));
 const clean = s => plain(s).toLowerCase().replace(/[’ʼ´`]/g,"'").replace(/\(.*?\)/g,"").replace(/[…?!.,]/g,"").replace(/\s+/g," ").trim();
 function variants(ua){
@@ -683,8 +686,9 @@ function renderDrill(){
   const w = WBYID[rs.cur], a = rs.answered; let body = "";
   if (rs.mode === "type") {
     body = `<div class="card"><div class="meta">Урок ${esc(w.lesson)} · Українською?</div><div class="front small">${esc(w.en)}</div></div>
-      <input class="answer ${a ? a.kind : ""}" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="українською…" value="${a ? esc(a.given) : ""}" ${a ? "readonly" : ""}>
-      ${a ? "" : `<div class="kb">${KB_ROWS.map(r => `<div class="kr">${r.map(x => `<button data-c="${x}">${x}</button>`).join("")}</div>`).join("")}<div class="kr"><button class="sp" data-c=" ">${L("пробіл", "space")}</button><button class="bs" data-c="BS">⌫</button></div></div>`}
+      <input class="answer ${a ? a.kind : ""}" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="українською…" value="${a ? esc(a.given) : ""}" ${a ? "readonly" : TOUCH && !nativeKb() ? 'readonly inputmode="none"' : ""}>
+      ${a ? "" : `${nativeKb() ? "" : `<div class="kb">${KB_ROWS.map(r => `<div class="kr">${r.map(x => `<button data-c="${x}">${x}</button>`).join("")}</div>`).join("")}<div class="kr"><button class="sp" data-c=" ">${L("пробіл", "space")}</button><button class="bs" data-c="BS">⌫</button></div></div>`}
+      ${TOUCH ? `<button class="kbswitch" id="kbswitch">${nativeKb() ? "🇺🇦 " + L("Клавіатура додатка", "Use the app keyboard") : "⌨️ " + L("Моя клавіатура", "Use my phone keyboard")}</button>` : ""}`}
       ${a ? feedback(a, w) : `<div class="row two"><button class="btn ghost" id="skip">Не знаю</button><button class="btn" id="check">Перевірити</button></div>`}`;
   } else if (rs.mode === "mc") {
     const q = rs.q;
@@ -726,10 +730,23 @@ function renderDrill(){
   el.innerHTML = rheader() + body;
   $("#quit").onclick = toMenu; wireSpeak(el);
   if (rs.mode === "type" && !a) {
-    const inp = $("#ans"); setTimeout(() => { try { inp.focus(); } catch(e){} }, 30);
+    const inp = $("#ans");
+    // On a phone the app keypad is the keyboard: the field is read-only (inputmode="none" too), which keeps the phone's own keyboard closed,
+    // and keys never take focus, so nothing pops up or jumps while typing. "Use my phone keyboard" switches back.
+    if (!TOUCH || nativeKb()) setTimeout(() => { try { inp.focus(); } catch(e){} }, 30);
     inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); submitTyped(inp.value); } };
-    el.querySelectorAll("[data-c]").forEach(b => b.onclick = () => {
-      if (b.dataset.c === "BS") inp.value = inp.value.slice(0, -1); else inp.value += b.dataset.c; inp.focus(); });
+    el.querySelectorAll("[data-c]").forEach(b => {
+      b.onpointerdown = e => e.preventDefault();
+      b.onclick = () => {
+        const v = inp.value, at = document.activeElement === inp ? inp.selectionStart ?? v.length : v.length;
+        const end = document.activeElement === inp ? inp.selectionEnd ?? at : at;
+        if (b.dataset.c === "BS") { const from = end > at ? at : Math.max(0, at - 1); inp.value = v.slice(0, from) + v.slice(end); setCaret(inp, from); }
+        else { inp.value = v.slice(0, at) + b.dataset.c + v.slice(end); setCaret(inp, at + b.dataset.c.length); }
+      };
+    });
+    const ks = $("#kbswitch"); if (ks) { ks.onpointerdown = e => e.preventDefault(); ks.onclick = () => {
+      const typed = inp.value; nativeKb(!nativeKb()); renderDrill(); const n = $("#ans"); n.value = typed;
+      if (nativeKb()) { try { n.focus(); } catch(e){} } }; }
     $("#check").onclick = () => submitTyped(inp.value); $("#skip").onclick = () => submitTyped("");
   } else if (rs.mode === "mc" && !a) {
     el.querySelectorAll("[data-o]").forEach(b => b.onclick = () => { const ok = b.dataset.o === w.id; answer({ kind: ok ? "ok" : "bad", pickedId: b.dataset.o }); if (rs.q.dir === "en" || ok) speak(w.ua); });
