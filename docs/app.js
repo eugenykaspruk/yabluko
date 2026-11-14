@@ -13,11 +13,17 @@ const plain = s => String(s).replace(/[`́]/g, "");
 /* ---------- interface language: 0 bilingual · 1 labels in Ukrainian · 2 everything in Ukrainian ---------- */
 let STAGE = 0;
 let EN = false;   // teacher screens and the teacher's settings are English only
-const L  = (ua, en) => EN ? en : STAGE >= 1 ? ua : `${ua} · ${en}`;              // short labels, inline
-const Ls = (ua, en) => EN ? en : STAGE >= 1 ? ua : `${ua}<small>${en}</small>`;  // short labels, stacked
-const I  = (ua, en) => EN ? en : STAGE >= 2 ? ua : en;                           // instructions (English until stage 2)
-const I2 = (ua, en) => STAGE >= 2 ? ua : `${ua} · ${en}`;              // messages already shown in both
-const TT = t => STAGE >= 1 ? String(t).split(" · ")[0] : t;            // "Ukrainian · English" titles
+/* Explanation language per student: English or Spanish (profiles.lang). Ukrainian replaces it stage by stage.
+   Strings are written in English in the code; X() looks up the Spanish in es.js (ES_UI for the interface,
+   ES_TEXT for lesson content, ES_WORDS for word meanings). F() fills {0}, {1}… in a template after translating. */
+let LANG = (() => { try { return localStorage.getItem("lang") === "es" ? "es" : "en"; } catch(e){ return "en"; } })();
+const X = en => (!EN && LANG === "es" && typeof ES_UI !== "undefined") ? (ES_UI[en] ?? ES_TEXT[en] ?? en) : en;
+const F = (t, ...a) => X(t).replace(/\{(\d)\}/g, (_, i) => a[i]);
+const L  = (ua, en) => EN ? en : STAGE >= 1 ? ua : `${ua} · ${X(en)}`;              // short labels, inline
+const Ls = (ua, en) => EN ? en : STAGE >= 1 ? ua : `${ua}<small>${X(en)}</small>`;  // short labels, stacked
+const I  = (ua, en) => EN ? en : STAGE >= 2 ? ua : X(en);                           // instructions (explanation language until stage 2)
+const I2 = (ua, en) => STAGE >= 2 ? ua : `${ua} · ${X(en)}`;              // messages already shown in both
+const TT = t => { const [a, b] = String(t).split(" · "); return STAGE >= 1 || b === undefined ? a : `${a} · ${X(b)}`; };  // "Ukrainian · English" titles
 const pl = (n, one, few, many) => { const a = Math.abs(n) % 100, b = a % 10;
   return a > 10 && a < 15 ? many : b === 1 ? one : b >= 2 && b <= 4 ? few : many; };
 const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
@@ -38,6 +44,17 @@ for (const l of LESSONS) for (const [ua, en] of l.words) {
   WORDS.push({ id: l.code + ":" + plain(ua), ua, en, lesson: l.code, review: !NO_REVIEW.has(plain(ua).toLowerCase()) });
 }
 const WBYID = Object.fromEntries(WORDS.map(w => [w.id, w]));
+WORDS.forEach(w => w.en0 = w.en);
+LESSONS.forEach(l => { l.en0 = l.en; l.words0 = l.words.map(w => [...w]); }); UNITS.forEach(u => u.en0 = u.en);
+// Switch word meanings, lesson and unit titles to the student's explanation language (English stays the fallback).
+function applyLang(lang){
+  LANG = lang === "es" ? "es" : "en"; try { localStorage.setItem("lang", LANG); } catch(e){}
+  const es = LANG === "es" && typeof ES_WORDS !== "undefined";
+  WORDS.forEach(w => w.en = es && ES_WORDS[w.id] || w.en0);
+  LESSONS.forEach(l => { l.en = X(l.en0); l.words = l.words0.map(([ua, en]) => [ua, es && ES_WORDS[l.code + ":" + plain(ua)] || en]); });
+  UNITS.forEach(u => u.en = X(u.en0));
+  document.documentElement.lang = LANG === "es" ? "es" : "uk";
+}
 // nouns with a known gender (an entry like "лікар / лікарка" gives two)
 function nounForms(w){
   const out=[];
@@ -93,7 +110,7 @@ const HINT_UA = {
   "Choose the best phrase for the situation.": "Обери найкращу фразу для ситуації.",
   "After з the country changes its ending.": "Після «з» назва країни змінює закінчення.",
 };
-const HU = h => STAGE >= 2 ? (HINT_UA[h] || h) : h;
+const HU = h => STAGE >= 2 ? (HINT_UA[h] || X(h)) : X(h);
 
 /* ---------- state ---------- */
 let me = null;            // {id, username, nickname, role}
@@ -234,14 +251,14 @@ function renderLogin(msg){
     <h1 style="text-align:center">Ucranización</h1>
     <p class="sub" style="text-align:center">Práctica · Practice</p>
     <form id="lf">
-      <label class="f" for="lu">Логін · Username</label>
+      <label class="f" for="lu">${L("Логін", "Username")}</label>
       <input class="field" id="lu" autocomplete="username" autocapitalize="off" spellcheck="false" required>
-      <label class="f" for="lp">Пароль · Password</label>
+      <label class="f" for="lp">${L("Пароль", "Password")}</label>
       <input class="field" id="lp" type="password" autocomplete="current-password" required>
       <div class="err" id="lerr">${esc(msg||"")}</div>
-      <button class="btn blue" id="lbtn">Увійти · Log in</button>
+      <button class="btn blue" id="lbtn">${L("Увійти", "Log in")}</button>
     </form>
-    <p class="hint2" style="text-align:center;margin-top:16px">Forgot your password? Ask your teacher to reset it.</p>
+    <p class="hint2" style="text-align:center;margin-top:16px">${X("Forgot your password? Ask your teacher to reset it.")}</p>
   </div>`;
   $("#lf").onsubmit = async e => {
     e.preventDefault();
@@ -250,8 +267,8 @@ function renderLogin(msg){
     $("#lbtn").disabled = true; $("#lerr").textContent = "";
     const { error } = await sb.auth.signInWithPassword({ email, password: p });
     $("#lbtn").disabled = false;
-    if (error) $("#lerr").textContent = /invalid/i.test(error.message) ? "Неправильний логін або пароль · Wrong username or password"
-      : /banned/i.test(error.message) ? "Доступ закрито: пакет закінчився. Напиши вчителю · Access closed: your package has ended. Message your teacher." : error.message;
+    if (error) $("#lerr").textContent = /invalid/i.test(error.message) ? I2("Неправильний логін або пароль", "Wrong username or password")
+      : /banned/i.test(error.message) ? I2("Доступ закрито: пакет закінчився. Напиши вчителю", "Access closed: your package has ended. Message your teacher.") : error.message;
   };
 }
 
@@ -260,8 +277,9 @@ function renderLogin(msg){
    ===================================================================== */
 async function loadMe(user){
   const { data: p, error } = await sb.from("profiles").select("*").eq("id", user.id).single();
-  if (error || !p) { await sb.auth.signOut(); renderLogin("Профіль не знайдено · Profile not found. Ask your teacher."); return false; }
+  if (error || !p) { await sb.auth.signOut(); renderLogin(I2("Профіль не знайдено", "Profile not found. Ask your teacher.")); return false; }
   me = p;
+  if (!isTeacher()) applyLang(p.lang || LANG);
   sb.from("profiles").update({ last_seen: new Date().toISOString() }).eq("id", me.id).then(()=>{});
   if (isTeacher()) {
     unlocked = new Set(LESSONS.map(l => l.code)); cards = new Map(); prog = {};
@@ -272,14 +290,14 @@ async function loadMe(user){
     sb.from("cards").select("*").eq("student_id", me.id),
     sb.from("progress").select("lesson,game,best").eq("student_id", me.id),
   ]);
-  if (u.error || c.error || g.error) { $("#app").innerHTML = `<p class="status">Не вдалося завантажити · Couldn't load your data. Refresh to try again.</p>`; return false; }
+  if (u.error || c.error || g.error) { $("#app").innerHTML = `<p class="status">${I2("Не вдалося завантажити", "Couldn't load your data. Refresh to try again.")}</p>`; return false; }
   unlocked = new Set(u.data.map(r => r.lesson).filter(c => BYCODE[c]));
   unlockedAt = Object.fromEntries(u.data.map(r => [r.lesson, r.unlocked_at]));
   cards = new Map(c.data.map(r => [r.word_id, r]));
   prog = {}; for (const r of g.data) (prog[r.lesson] ||= {})[r.game] = r.best;
   await loadBalance();
   if (BAL !== null && BEXP && daysTo(BEXP) < -14) {   // package ended more than 14 days ago: login closed (also enforced in Supabase, migrate_4.sql)
-    loginMsg = "Доступ закрито: пакет закінчився. Напиши вчителю · Access closed: your package has ended. Message your teacher.";
+    loginMsg = I2("Доступ закрито: пакет закінчився. Напиши вчителю", "Access closed: your package has ended. Message your teacher.");
     await sb.auth.signOut();
     return false;
   }
@@ -316,9 +334,9 @@ function congratulate(stage){
         en: "You finished the Introduction at 100%! From now on, buttons and menus are in Ukrainian only. Instructions stay in both languages for now." }
     : { h: "🏆 Вітаємо з рівнем A1!", ua: "Тепер увесь додаток — українською. Ти впораєшся!",
         en: "You reached A1! From now on the whole app is in Ukrainian." };
-  openModal(`<div class="congrats"><div class="cbig">${t.h}</div><p>${t.ua}</p><p class="note">${t.en}</p>
-    <p class="note">Якщо щось незрозуміло: ⚙️ → Мова · If you get stuck: ⚙️ → App language</p>
-    <div class="row"><button class="btn blue" id="cok">Чудово! · Great!</button></div></div>`);
+  openModal(`<div class="congrats"><div class="cbig">${t.h}</div><p>${t.ua}</p><p class="note">${X(t.en)}</p>
+    <p class="note">${I2("Якщо щось незрозуміло: ⚙️ → Мова", "If you get stuck: ⚙️ → App language")}</p>
+    <div class="row"><button class="btn blue" id="cok">${I2("Чудово!", "Great!")}</button></div></div>`);
   $("#cok").onclick = closeModal;
 }
 let BAL = null;   // classes left, null until the database has the class balance
@@ -336,14 +354,14 @@ function balanceBanner(){
   if (BAL !== null && BAL > 0 && BEXP && daysTo(BEXP) <= 7) {
     const d = dmy(BEXP), left = daysTo(BEXP);
     return left < 0
-      ? `<div class="balbar zero">${I2(`Термін пакета минув ${d}. Напиши вчителю`, `Your package expired on ${d}. Message your teacher`)}</div>`
-      : `<div class="balbar">${I2(`Пакет діє до ${d}: залишилось ${BAL} ${pl(BAL, "заняття", "заняття", "занять")}`, `Your package is valid until ${d}: ${BAL} ${BAL === 1 ? "class" : "classes"} left`)}</div>`;
+      ? `<div class="balbar zero">${I2(`Термін пакета минув ${d}. Напиши вчителю`, F("Your package expired on {0}. Message your teacher", d))}</div>`
+      : `<div class="balbar">${I2(`Пакет діє до ${d}: залишилось ${BAL} ${pl(BAL, "заняття", "заняття", "занять")}`, F(BAL === 1 ? "Your package is valid until {0}: {1} class left" : "Your package is valid until {0}: {1} classes left", d, BAL))}</div>`;
   }
   if (BAL === null || BAL > 3) return "";
   const n = Math.max(0, BAL);
   return n === 0
     ? `<div class="balbar zero">${I2("Оплачені заняття закінчилися. Напиши вчителю, щоб поновити пакет", "No paid classes left. Message your teacher to renew")}</div>`
-    : `<div class="balbar">${I2(`Залишилось ${n} ${pl(n, "заняття", "заняття", "занять")}. Час поновити пакет`, `${n} ${n === 1 ? "class" : "classes"} left. Time to renew your package`)}</div>`;
+    : `<div class="balbar">${I2(`Залишилось ${n} ${pl(n, "заняття", "заняття", "занять")}. Час поновити пакет`, F(n === 1 ? "{0} class left. Time to renew your package" : "{0} classes left. Time to renew your package", n))}</div>`;
 }
 
 /* ---------- always run the newest version ----------
@@ -376,7 +394,7 @@ function openFromHash(){
   const code = m[1] + "." + m[2]; history.replaceState(null, "", location.pathname);
   if (!BYCODE[code]) return false;
   if (unlocked.has(code)) view = { tab: "lesson", code, game: "words" };
-  else { view = { tab: "home" }; setTimeout(() => toast(I2(`Урок ${code} відкриється після заняття`, `Lesson ${code} opens after your class`)), 300); }
+  else { view = { tab: "home" }; setTimeout(() => toast(I2(`Урок ${code} відкриється після заняття`, F("Lesson {0} opens after your class", code))), 300); }
   render(); return true;
 }
 window.addEventListener("hashchange", () => { if (me) openFromHash(); });
@@ -401,10 +419,10 @@ function bookBar(){
   const opened = ls.filter(l => unlocked.has(l.code)).length;
   const done = ls.filter(l => lessonPct(l.code) >= 80).length;
   return `<div class="book">
-      <div class="lbl"><span>${L("Прогрес", "Progress")}</span><span><b>${pct < 1 && pct > 0 ? pct.toFixed(1) : Math.round(pct)}%</b> · ${done} / ${N} ${STAGE >= 1 ? "уроків" : "lessons done"}</span></div>
+      <div class="lbl"><span>${L("Прогрес", "Progress")}</span><span><b>${pct < 1 && pct > 0 ? pct.toFixed(1) : Math.round(pct)}%</b> · ${done} / ${N} ${STAGE >= 1 ? "уроків" : X("lessons done")}</span></div>
       <div class="bbar"><div class="open" style="width:${opened / N * 100}%"></div><i style="width:${pct}%"></i>
         <div class="mark" style="left:100%"><span>${goal}</span></div></div>
-      <div class="legend2"><span><i style="background:var(--blue)"></i>${STAGE >= 1 ? "опрацьовано" : "practised"}</span><span><i class="op"></i>${STAGE >= 1 ? "відкрито" : "opened in class"} (${opened})</span>${BAL !== null ? `<span class="balchip ${BAL <= 3 ? "low" : ""}">🎟 ${Math.max(0, BAL)} ${STAGE >= 1 ? pl(Math.max(0, BAL), "заняття", "заняття", "занять") : (BAL === 1 ? "class left" : "classes left")}</span>` : ""}</div>
+      <div class="legend2"><span><i style="background:var(--blue)"></i>${STAGE >= 1 ? "опрацьовано" : X("practised")}</span><span><i class="op"></i>${STAGE >= 1 ? "відкрито" : X("opened in class")} (${opened})</span>${BAL !== null ? `<span class="balchip ${BAL <= 3 ? "low" : ""}">🎟 ${Math.max(0, BAL)} ${STAGE >= 1 ? pl(Math.max(0, BAL), "заняття", "заняття", "занять") : X(BAL === 1 ? "class left" : "classes left")}</span>` : ""}</div>
     </div>`;
 }
 function render(){
@@ -445,17 +463,17 @@ function renderHome(){
   else if (n) today = `<button class="today" id="start"><span class="tnum">${n}</span><span class="tlbl">${Ls("на сьогодні", "words today")}</span><span class="tgo">Почати ▶</span></button>`;
   else today = `<div class="today done-t"><span class="tnum">✓</span><span class="tlbl">${Ls("Усе на сьогодні", "All done today")}</span>${met >= 4 ? `<button class="more-btn" id="extra">${Ls("Ще трохи", "A bit more")}</button>` : ""}</div>`;
   el.innerHTML = balanceBanner() + today + `
-    <h3 class="sec">${STAGE >= 1 ? "Уроки" : "Уроки <small>Lessons</small>"}</h3>
+    <h3 class="sec">${STAGE >= 1 ? "Уроки" : `Уроки <small>${X("Lessons")}</small>`}</h3>
     <div class="lessons">${open.slice(0, 3).map(lessonRow).join("")}
       ${open.length > 3 ? `<button class="more-l" id="allL">${L("Усі уроки", "All lessons")} (${open.length}) →</button>`
         : lockedCount ? lockedRow(lockedCount) : ""}</div>
-    <h3 class="sec">${STAGE >= 1 ? "Ще практика" : "Ще практика <small>More practice</small>"}</h3>
+    <h3 class="sec">${STAGE >= 1 ? "Ще практика" : `Ще практика <small>${X("More practice")}</small>`}</h3>
     <div class="modes">
       <button class="mode" data-m="type" ${met < 4 ? "disabled" : ""}><span class="ic">⌨️</span><b>Пиши</b><span>${I("Напиши українською", "Type it in Ukrainian")}</span></button>
       <button class="mode" data-m="mc" ${met < 4 ? "disabled" : ""}><span class="ic">✅</span><b>Тест</b><span>${I("Обери значення", "Pick the meaning")}</span></button>
       <button class="mode" data-m="gender" ${nouns < 3 ? "disabled" : ""}><span class="ic">🎨</span><b>він · вона · воно</b><span>${I("Рід іменників", "Noun genders")}</span></button>
       <button class="mode" data-m="stress" ${str < 3 ? "disabled" : ""}><span class="ic">🎯</span><b>Наголос</b><span>${I("Знайди наголос", "Find the stress")}</span></button>
-      <button class="mode wide" id="toList"><span class="ic">📖</span><b>${L("Словник", "Word list")}</b><span>${STAGE >= 2 ? `слів: ${d.length} · вивчено: ${d.filter(w => (cardOf(w.id).box || 0) >= 3).length}` : `${d.length} words · ${d.filter(w => (cardOf(w.id).box || 0) >= 3).length} learned · newest first`}</span></button>
+      <button class="mode wide" id="toList"><span class="ic">📖</span><b>${L("Словник", "Word list")}</b><span>${STAGE >= 2 ? `слів: ${d.length} · вивчено: ${d.filter(w => (cardOf(w.id).box || 0) >= 3).length}` : F("{0} words · {1} learned · newest first", d.length, d.filter(w => (cardOf(w.id).box || 0) >= 3).length)}</span></button>
     </div>
     ${met < 4 && d.length ? `<p class="status">${I("Ігри відкриються після перших карток.", "The practice games open after your first flashcards.")}</p>` : ""}`;
   if ($("#start")) $("#start").onclick = () => startReview("cards");
@@ -471,7 +489,7 @@ function lessonRow(code){
     <span class="t"><b>${esc(ST(l.ua))}</b>${STAGE >= 2 ? "" : `<span>${esc(l.en)}</span>`}<div class="mini"><i class="${p >= 80 ? "full" : ""}" style="width:${p}%"></i></div></span>
     <span class="pct ${p >= 80 ? "done" : ""}">${p >= 80 ? "✓" : p + "%"}</span></button>`;
 }
-const lockedRow = n => `<div class="lesson locked"><span class="code">🔒</span><span class="t"><span>${I(`Ще ${n} ${pl(n, "урок відкриється", "уроки відкриються", "уроків відкриються")} після занять`, `${n} more lessons open after your classes`)}</span></span></div>`;
+const lockedRow = n => `<div class="lesson locked"><span class="code">🔒</span><span class="t"><span>${I(`Ще ${n} ${pl(n, "урок відкриється", "уроки відкриються", "уроків відкриються")} після занять`, F("{0} more lessons open after your classes", n))}</span></span></div>`;
 function renderAllLessons(){
   const el = $("#main"), open = openLessonsNewest(), locked = LESSONS.length - open.length;
   el.innerHTML = `<div class="top"><button id="backL">← Назад</button><span>${L("Уроки", "Lessons")}</span><span></span></div>
@@ -490,14 +508,14 @@ function openSettings(page){
   const back = `<button class="setback" id="sback">← ${L("Налаштування", "Settings")}</button>`;
   if (!page) {
     const th = { auto: L("Авто", "Auto"), light: L("Світла", "Light"), dark: L("Темна", "Dark") }[getTheme()];
-    const lang = me.ui_choice === "bi" ? "Двомовна · Bilingual" : "Авто · Auto";
+    const lang = (LANG === "es" ? "Español" : "English") + " · " + (me.ui_choice === "bi" ? L("Двомовна", "Bilingual") : L("Авто", "Auto"));
     openModal(`<h2>${L("Налаштування", "Settings")}</h2>
       <p class="sub">${L("Логін", "Login name")}: <b>${esc(me.username)}</b></p>
       <div class="setlist">
         <button class="setrow" data-p="theme"><span class="si">🎨</span><span class="st">${Ls("Тема", "Theme")}</span><span class="sv">${th}</span><span class="sa">›</span></button>
         <button class="setrow" data-p="nick"><span class="si">🙂</span><span class="st">${Ls("Нікнейм", "Nickname")}</span><span class="sv">${esc(me.nickname)}</span><span class="sa">›</span></button>
         <button class="setrow" data-p="pw"><span class="si">🔑</span><span class="st">${Ls("Пароль", "Password")}</span><span class="sv">••••••••</span><span class="sa">›</span></button>
-        ${isTeacher() ? "" : `<button class="setrow" data-p="lang"><span class="si">🌐</span><span class="st">Мова<small>App language</small></span><span class="sv">${lang}</span><span class="sa">›</span></button>`}
+        ${isTeacher() ? "" : `<button class="setrow" data-p="lang"><span class="si">🌐</span><span class="st">Мова<small>${X("App language")}</small></span><span class="sv">${lang}</span><span class="sa">›</span></button>`}
       </div>
       <div class="row two" style="margin-top:22px"><button class="btn danger" id="logout">${L("Вийти", "Log out")}</button><button class="btn" id="closeS">${L("Готово", "Done")}</button></div>`);
     $("#sheet").querySelectorAll("[data-p]").forEach(b => b.onclick = () => openSettings(b.dataset.p));
@@ -508,12 +526,23 @@ function openSettings(page){
   if (page === "lang") {
     // always shown in both languages: this is the way back if a student gets stuck
     const ch = me.ui_choice === "bi" ? "bi" : "auto";
-    openModal(`<button class="setback" id="sback">← Налаштування · Settings</button><h2>Мова · App language</h2>
-      <p class="sub">Коли ти завершуєш етапи на 100%, додаток поступово переходить на українську. · As you finish stages at 100%, the app gradually switches to Ukrainian.</p>
+    openModal(`<button class="setback" id="sback">← Налаштування · ${X("Settings")}</button><h2>Мова · ${X("App language")}</h2>
+      <h3 class="sec" style="margin-top:6px">Мова пояснень <small>Explanations · Explicaciones</small></h3>
+      <div class="setlist" id="xl">
+        <button class="setrow ${LANG === "en" ? "on" : ""}" data-x="en"><span class="si">🇬🇧</span><span class="st">English<small>Explanations in English</small></span><span class="sa">${LANG === "en" ? "✓" : ""}</span></button>
+        <button class="setrow ${LANG === "es" ? "on" : ""}" data-x="es"><span class="si">🇪🇸</span><span class="st">Español<small>Explicaciones en español</small></span><span class="sa">${LANG === "es" ? "✓" : ""}</span></button>
+      </div>
+      <h3 class="sec">Українська <small>${X("How much Ukrainian")}</small></h3>
+      <p class="sub">Коли ти завершуєш етапи на 100%, додаток поступово переходить на українську. · ${X("As you finish stages at 100%, the app gradually switches to Ukrainian.")}</p>
       <div class="setlist" id="lang">
-        <button class="setrow ${ch === "auto" ? "on" : ""}" data-c="auto"><span class="si">🚀</span><span class="st">Авто<small>Ukrainian grows with your progress</small></span><span class="sa">${ch === "auto" ? "✓" : ""}</span></button>
-        <button class="setrow ${ch === "bi" ? "on" : ""}" data-c="bi"><span class="si">🤝</span><span class="st">Двомовна<small>Bilingual: Ukrainian and English</small></span><span class="sa">${ch === "bi" ? "✓" : ""}</span></button>
+        <button class="setrow ${ch === "auto" ? "on" : ""}" data-c="auto"><span class="si">🚀</span><span class="st">Авто<small>${X("Ukrainian grows with your progress")}</small></span><span class="sa">${ch === "auto" ? "✓" : ""}</span></button>
+        <button class="setrow ${ch === "bi" ? "on" : ""}" data-c="bi"><span class="si">🤝</span><span class="st">Двомовна<small>${X("Bilingual: Ukrainian and English")}</small></span><span class="sa">${ch === "bi" ? "✓" : ""}</span></button>
       </div>`);
+    $("#xl").querySelectorAll("[data-x]").forEach(b => b.onclick = async () => {
+      applyLang(b.dataset.x); me.lang = LANG;
+      sb.from("profiles").update({ lang: LANG }).eq("id", me.id).then(() => {});   // needs supabase/migrate_5.sql
+      render(); openSettings("lang");
+    });
     $("#lang").querySelectorAll("[data-c]").forEach(b => b.onclick = async () => {
       me.ui_choice = b.dataset.c === "bi" ? "bi" : null;
       sb.from("profiles").update({ ui_choice: me.ui_choice }).eq("id", me.id).then(() => {});
@@ -620,7 +649,7 @@ function renderCards(){
         <button class="r1" data-r="hard">${Ls("Важко", "Tricky")}</button>
         <button class="r2" data-r="good">${Ls("Знаю", "Knew it")}</button>
         <button class="r3" data-r="easy">${Ls("Легко", "Easy")}</button></div>`
-      : `<div class="row"><button class="btn" id="show">${STAGE >= 1 ? "Показати відповідь" : "Показати · Show answer"}</button></div>`}`;
+      : `<div class="row"><button class="btn" id="show">${STAGE >= 1 ? "Показати відповідь" : "Показати · " + X("Show answer")}</button></div>`}`;
   $("#quit").onclick = toMenu; wireSpeak(el);
   $("#flip").onclick = () => { rs.dir = rs.dir === "ua" ? "en" : "ua"; renderCards(); };
   if (rs.revealed) el.querySelectorAll("[data-r]").forEach(b => b.onclick = () => {
@@ -653,7 +682,7 @@ function lev(a,b){
 function checkTyped(given, w){
   const g = clean(given); if (!g) return { kind:"bad" };
   // accept any word in the deck that shares this English meaning
-  const syn = deck().filter(x => meaningOf(x.en) === meaningOf(w.en));
+  const syn = deck().filter(x => meaningOf(x.en0) === meaningOf(w.en0));
   const pool = syn.flatMap(x => variants(x.ua));
   if (pool.includes(g)) {
     const hit = variants(w.ua).includes(g) ? w : syn.find(x => variants(x.ua).includes(g));
@@ -670,8 +699,8 @@ function prepQuestion(){
   if (rs.mix) rs.mode = shuffle(["type", "mc", ...(nounForms(w).length ? ["gender"] : []), ...(stressable(w) ? ["stress"] : [])])[0];
   if (rs.mode === "mc") {
     const dir = Math.random() < .5 ? "ua" : "en";
-    let pool = deck().filter(x => x.id !== w.id && meaningOf(x.en) !== meaningOf(w.en));
-    if (pool.length < 3) pool = WORDS.filter(x => x.id !== w.id && meaningOf(x.en) !== meaningOf(w.en));
+    let pool = deck().filter(x => x.id !== w.id && meaningOf(x.en0) !== meaningOf(w.en0));
+    if (pool.length < 3) pool = WORDS.filter(x => x.id !== w.id && meaningOf(x.en0) !== meaningOf(w.en0));
     const others = shuffle(pool).slice(0, 3);
     rs.q = { dir, options: shuffle([w, ...others]).map(x => ({ id: x.id, text: dir === "ua" ? x.en : ST(x.ua) })) };
   } else if (rs.mode === "gender") {
@@ -773,7 +802,7 @@ function answer(a){
 }
 const GNAME_EN = { m:"він (masculine)", f:"вона (feminine)", n:"воно (neuter)", pl:"вони (plural only)" };
 const GNAME_UA = { m:"він (чоловічий рід)", f:"вона (жіночий рід)", n:"воно (середній рід)", pl:"вони (лише множина)" };
-const GNAME = new Proxy({}, { get: (_, k) => (STAGE >= 2 ? GNAME_UA : GNAME_EN)[k] });
+const GNAME = new Proxy({}, { get: (_, k) => STAGE >= 2 ? GNAME_UA[k] : X(GNAME_EN[k]) });
 function feedback(a, w){
   const sol = `<b>${esc(ST(w.ua))}</b>`; let html;
   if (rs.mode === "gender") {
@@ -793,7 +822,7 @@ function renderDone(){
   const el = $("#main");
   if (rs.mode === "cards") {
     const met = deck().filter(w => cards.has(w.id)).length;
-    el.innerHTML = `<div class="empty"><div class="big">Молодець! 💪</div>${I(`Пройдено ${rs.done} ${pl(rs.done, "картку", "картки", "карток")}.`, `${rs.done} cards done.`)}${met >= 4 ? "<br>" + I("Тепер швидка перевірка: 5 запитань.", "Now a quick check: 5 questions.") : ""}</div>
+    el.innerHTML = `<div class="empty"><div class="big">Молодець! 💪</div>${I(`Пройдено ${rs.done} ${pl(rs.done, "картку", "картки", "карток")}.`, F("{0} cards done.", rs.done))}${met >= 4 ? "<br>" + I("Тепер швидка перевірка: 5 запитань.", "Now a quick check: 5 questions.") : ""}</div>
       <div class="row ${met >= 4 ? "two" : ""}"><button class="btn ghost" id="back">${met >= 4 ? L("Пропустити", "Skip") : L("Готово", "Done")}</button>${met >= 4 ? `<button class="btn" id="mixgo">Почати ▶</button>` : ""}</div>`;
     if ($("#mixgo")) $("#mixgo").onclick = () => startReview("mix");
   } else {
@@ -817,14 +846,14 @@ function renderLessons_unused(){
   el.innerHTML = UNITS.map(u => {
     const ls = LESSONS.filter(l => unitOf(l.code) === u.n);
     const head = `<h3>${u.n === 0 ? "Вступ" : "Розділ " + u.n + " · " + esc(u.ua)} <small>${esc(u.en)}</small></h3>`;
-    if (!ls.length) return `<div class="unit">${head}<div class="lesson locked"><span class="code">🔒</span><span class="t"><span>${u.lessons} lessons · coming soon</span></span></div></div>`;
+    if (!ls.length) return `<div class="unit">${head}<div class="lesson locked"><span class="code">🔒</span><span class="t"><span>${F("{0} lessons · coming soon", u.lessons)}</span></span></div></div>`;
     return `<div class="unit">${head}<div class="lessons">${ls.map(l => {
       const open = unlocked.has(l.code), p = lessonPct(l.code);
       return `<button class="lesson ${open ? "" : "locked"}" data-l="${l.code}" ${open ? "" : "disabled"}>
         <span class="code">${open ? l.code : "🔒"}</span>
         <span class="t"><b>${esc(ST(l.ua))}</b><span>${esc(l.en)}</span>${open ? `<div class="mini"><i class="${p >= 80 ? "full" : ""}" style="width:${p}%"></i></div>` : ""}</span>
         <span class="pct ${p >= 80 ? "done" : ""}">${open ? (p >= 80 ? "✓" : p + "%") : ""}</span></button>`; }).join("")}</div></div>`;
-  }).join("") + `<p class="status">Lessons open after your class. A lesson counts as done at 80%.</p>`;
+  }).join("") + `<p class="status">${X("Lessons open after your class. A lesson counts as done at 80%.")}</p>`;
   el.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { view = { tab: "lesson", code: b.dataset.l, game: "words" }; render(); });
 }
 function renderLesson(){
@@ -853,7 +882,7 @@ function gWords(box, l){
   show();
 }
 function gPairs(box, l){
-  const P = l.pairs.items.map(x => [ST(x[0]), ST(x[1])]);
+  const P = l.pairs.items.map(x => [ST(X(x[0])), ST(X(x[1]))]);
   box.innerHTML = `<p class="note" style="margin:0 0 10px">${HU(l.pairs.hint)}</p><div class="match"><div class="col" id="mL"></div><div class="col" id="mR"></div></div><div class="status" id="mFb"></div>`;
   let sel = null, done = 0, tries = 0;
   function tile(t, i, s){ const b = document.createElement("button"); b.className = "tile"; b.textContent = t; b.dataset.i = i; b.dataset.s = s;
@@ -861,7 +890,7 @@ function gPairs(box, l){
       if (!sel || sel.dataset.s === s) { if (sel) sel.classList.remove("sel"); sel = b; b.classList.add("sel"); return; }
       tries++;
       if (sel.dataset.i === b.dataset.i) { [sel, b].forEach(x => { x.classList.remove("sel"); x.classList.add("done"); }); done++; markItem(l.code, "p#" + b.dataset.i); sel = null;
-        if (done === P.length) { $("#mFb").textContent = STAGE >= 2 ? `Чудово! Усі пари. Спроб: ${tries}.` : `Чудово! All pairs in ${tries} tries.`; }
+        if (done === P.length) { $("#mFb").textContent = STAGE >= 2 ? `Чудово! Усі пари. Спроб: ${tries}.` : "Чудово! " + F("All pairs in {0} tries.", tries); }
       } else { const a = sel; [a, b].forEach(x => x.classList.add("wrong")); setTimeout(() => [a, b].forEach(x => x.classList.remove("wrong", "sel")), 350); sel = null; } };
     return b; }
   shuffle(P.map((x,i) => [x[0], i])).forEach(([t,i]) => $("#mL").append(tile(t, i, "L")));
@@ -874,11 +903,11 @@ function gQuiz(box, l, qi){
     if (i >= order.length) {
       const pct = score / order.length * 100;
       box.innerHTML = `<div class="card"><div class="big" style="font-family:'Noto Serif',serif;font-size:26px">${score} / ${order.length}</div>
-        <div class="note">${pct === 100 ? "Відмінно!" : pct >= 80 ? I("Добре! Зараховано.", "Добре! Counts as done.") : I("Спробуй ще раз: потрібно 80%.", "Try again: 80% counts as done.")} · ${I(`гру пройдено на ${Math.round(gamePctFrom(prog[l.code] || {}, l, "q" + qi))}%`, `${Math.round(gamePctFrom(prog[l.code] || {}, l, "q" + qi))}% of this game done`)}</div></div>
+        <div class="note">${pct === 100 ? "Відмінно!" : pct >= 80 ? I("Добре! Зараховано.", "Добре! Counts as done.") : I("Спробуй ще раз: потрібно 80%.", "Try again: 80% counts as done.")} · ${I(`гру пройдено на ${Math.round(gamePctFrom(prog[l.code] || {}, l, "q" + qi))}%`, F("{0}% of this game done", Math.round(gamePctFrom(prog[l.code] || {}, l, "q" + qi))))}</div></div>
         <div class="row two"><button class="btn ghost" id="qb">Інша гра</button><button class="btn" id="qa">Ще раз</button></div>`;
       $("#qa").onclick = start; $("#qb").onclick = () => { renderLesson(); }; return;
     }
-    const [q, ans, own, idx] = order[i]; let opts = (own || Q.opts).map(ST); if (!Q.fixed) opts = shuffle(opts);
+    const [q0, ans0, own, idx] = order[i], q = X(q0), ans = X(ans0); let opts = (own || Q.opts).map(o => ST(X(o))); if (!Q.fixed) opts = shuffle(opts);
     box.innerHTML = `<div class="progress"><div style="width:${i / order.length * 100}%"></div></div>
       <p class="note" style="margin:0 0 6px">${HU(Q.hint || "")}</p>
       <div class="q">${ST(q).replace("___", '<span class="gap">&nbsp;</span>').replace(/class=sub/g, 'class="sub2"')}</div>
@@ -1100,6 +1129,8 @@ function openAddStudent(){
     <label class="f" for="ap">Starting password</label>
     <div style="display:flex;gap:8px"><input class="field" id="ap" value="${genPassword()}"><button class="btn ghost small" id="regen">↻</button></div>
     <div class="hint2">They can change it in the app.</div>
+    <label class="f" for="alang">Explanations in</label>
+    <select class="field" id="alang"><option value="es">Español</option><option value="en">English</option></select>
     <label class="f">Open lessons now</label>
     <select class="field" id="aun"><option value="">None yet</option>${UNITS.filter(u => LESSONS.some(l => unitOf(l.code) === u.n)).map(u => `<option value="${u.n}">Whole ${u.n === 0 ? "Introduction" : "Unit " + u.n}</option>`).join("")}<option value="0.1">Only lesson 0.1</option></select>
     <div class="err" id="aerr"></div>
@@ -1119,6 +1150,7 @@ function openAddStudent(){
       const sel = $("#aun").value;
       const codes = sel === "" ? [] : sel.includes(".") ? [sel] : LESSONS.filter(l => String(unitOf(l.code)) === sel).map(l => l.code);
       if (codes.length) await sb.from("unlocks").insert(codes.map(lesson => ({ student_id: r.id, lesson })));
+      await sb.from("profiles").update({ lang: $("#alang").value }).eq("id", r.id);   // needs supabase/migrate_5.sql
       showCredentials(username, password, "Student created ✓");
     } catch (e) { $("#aerr").textContent = e.message; $("#acreate").disabled = false; }
   };
@@ -1399,7 +1431,10 @@ function renderStudent(){
         <div class="panel"><h3>App language</h3>
           <p class="note" style="margin-top:0">Now: <b>${["bilingual", "labels in Ukrainian", "all Ukrainian"][stageOf(s, st)]}</b>${s.ui_choice === "bi" ? " (the student chose bilingual)" : ""}. Automatic: labels turn Ukrainian after the Intro at 100%, everything at A1 at 100%.</p>
           <select class="field" id="uiov">${[["", "Automatic"], ["0", "Bilingual"], ["1", "Labels in Ukrainian"], ["2", "All Ukrainian"]].map(([v, t]) =>
-            `<option value="${v}" ${String(s.ui_override ?? "") === v ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+            `<option value="${v}" ${String(s.ui_override ?? "") === v ? "selected" : ""}>${t}</option>`).join("")}</select>
+          <label class="f" for="slang">Explanations in</label>
+          <select class="field" id="slang">${[["en", "English"], ["es", "Español"]].map(([v, t]) => `<option value="${v}" ${(s.lang || "en") === v ? "selected" : ""}>${t}</option>`).join("")}</select>
+          ${s.lang === undefined ? `<p class="note">Run supabase/migrate_5.sql once to save this.</p>` : ""}</div>
         <div class="panel"><h3>Account</h3>
           <div class="row two"><button class="btn ghost" id="rp">Reset password</button><button class="btn danger" id="del">Delete student</button></div></div>
       </div>`;
@@ -1412,6 +1447,11 @@ function renderStudent(){
       const { error } = await sb.from("profiles").update({ ui_override: v }).eq("id", s.id);
       if (error) { toast("Couldn't save: " + error.message); return; }
       s.ui_override = v; toast("Saved"); renderStudent();
+    };
+    $("#slang").onchange = async e => {
+      const v = e.target.value, { error } = await sb.from("profiles").update({ lang: v }).eq("id", s.id);
+      if (error) { toast("Couldn't save: " + error.message); return; }
+      s.lang = v; toast("Saved"); renderStudent();
     };
   }
   async function setLessons(codes, on){

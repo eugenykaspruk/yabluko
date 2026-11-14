@@ -49,6 +49,10 @@ board; this app is where students practise between classes.
 - `docs/data.js`: content. `UNITS`, `LESSONS` (each: code, ua/en titles, `words`
   [[ua, en]], optional `pairs`, `quizzes`), `GENDER` map for the gender drill.
   Stress is written as a backtick after the stressed vowel (`ма`ма`) and converted to U+0301.
+- `docs/es.js`: Spanish for students whose explanation language is Spanish. `ES_UI` (interface),
+  `ES_TEXT` (lesson titles, hints, quiz questions/answers, keyed by the English text) and `ES_WORDS`
+  (word meanings keyed by word id). Missing keys fall back to English. New lessons need entries here too.
+  Spanish: nouns with the article, neutral (no regional words).
 - `docs/config.js`: Supabase URL + publishable key (public by design; access is
   enforced by Row Level Security)
 - `supabase/setup.sql`: tables `profiles`, `unlocks`, `progress`, `cards`; RLS policies
@@ -58,6 +62,12 @@ board; this app is where students practise between classes.
   students, resets passwords, deletes students; checks the caller is a teacher
 - `.github/workflows/keep-alive.yml`: pings Supabase twice a week so the free plan
   doesn't pause the project
+
+## Explanation language
+`profiles.lang` ('en' | 'es', `supabase/migrate_5.sql`). The teacher sets it in the student card or when
+adding a student; the student can change it in ⚙️ → Мова. In code, English strings go through `X()` /
+`F()` (or the `L`/`Ls`/`I`/`I2`/`TT`/`HU` helpers, which call `X`). The STAGE logic is the same for both
+languages: Ukrainian gradually replaces the explanation language. Teacher screens stay English.
 
 ## Conventions and rules
 - Student logins are stored as `<username>@students.yabluko.app` (never emailed).
