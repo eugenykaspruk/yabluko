@@ -898,6 +898,7 @@ function gPairs(box, l){
   shuffle(P.map((x,i) => [x[1], i])).forEach(([t,i]) => $("#mR").append(tile(t, i, "R")));
   nextBtn(box, l, "pairs", false);
 }
+const CASE_PRON = new Set("мене тебе його її нас вас їх мені тобі йому їй нам вам їм чий чия чиє чиї".split(" "));
 function gQuiz(box, l, qi){
   const Q = l.quizzes[qi]; let order, i, score;
   function start(){ order = shuffle(Q.items.map((it, idx) => [...it.slice(0, 2), it[2], idx])); i = 0; score = 0; step(); }
@@ -909,7 +910,14 @@ function gQuiz(box, l, qi){
         <div class="row"><button class="btn ghost" id="qa">${L("Ще раз", "Again")}</button></div>`;
       $("#qa").onclick = start; nextBtn(box, l, "q" + qi, pct >= 80); return;
     }
-    const [q0, ans0, own, idx] = order[i], q = X(q0), ans = X(ans0); let opts = (own || Q.opts).map(o => ST(X(o))); if (!Q.fixed) opts = shuffle(opts);
+    const [q0, ans0, own, idx] = order[i], q = X(q0);
+    // Shared option lists are written for the start of a sentence; fit them to where the gap is:
+    // capital letter at the start, small letter for pronouns in the middle (the polite Вас / Вам keep theirs).
+    const atStart = /^(___|.*[.!?]\s+___)/.test(q.replace(/<[^>]+>/g, "").trim());
+    const fit = o => { o = String(o); if (atStart) return o.charAt(0).toUpperCase() + o.slice(1);
+      const low = o.charAt(0).toLowerCase() + o.slice(1);
+      return CASE_PRON.has(plain(low)) && !/^Ва[смш]/.test(o) ? low : o; };
+    const ans = fit(X(ans0)); let opts = (own || Q.opts).map(o => ST(fit(X(o)))); if (!Q.fixed) opts = shuffle(opts);
     box.innerHTML = `<div class="progress"><div style="width:${i / order.length * 100}%"></div></div>
       <p class="note" style="margin:0 0 6px">${HU(Q.hint || "")}</p>
       <div class="q">${ST(q).replace("___", '<span class="gap">&nbsp;</span>').replace(/class=sub/g, 'class="sub2"')}</div>
