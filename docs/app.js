@@ -1171,11 +1171,15 @@ async function callAdmin(body){
   if (error) { let msg = error.message; try { const j = await error.context.json(); msg = j.error || msg; } catch(e){} throw new Error(msg); }
   return data;
 }
-function credText(username, password){
-  return `Ucranización · Práctica / Practice\n${location.origin + location.pathname}\n\nLogin: ${username}\nPassword: ${password}\n\nYou can change your nickname and password in ⚙️ after logging in.`;
+// Login details for the student, in their explanation language (profiles.lang)
+function credText(username, password, lang){
+  const url = location.origin + location.pathname;
+  return lang === "es"
+    ? `Ucranización · Práctica\n${url}\n\nUsuario: ${username}\nContraseña: ${password}\n\nDespués de entrar, puedes cambiar tu apodo y tu contraseña en ⚙️.`
+    : `Ucranización · Practice\n${url}\n\nLogin: ${username}\nPassword: ${password}\n\nYou can change your nickname and password in ⚙️ after logging in.`;
 }
-function showCredentials(username, password, title){
-  const txt = credText(username, password);
+function showCredentials(username, password, title, lang){
+  const txt = credText(username, password, lang);
   openModal(`<h2>${title}</h2><p class="sub">Send this to your student. You won't see the password again.</p>
     <div class="cred" id="credt">${esc(txt)}</div>
     <div class="row two"><button class="btn ghost" id="cp">Copy</button><button class="btn" id="cd">Done</button></div>`);
@@ -1212,7 +1216,7 @@ function openAddStudent(){
       const codes = sel === "" ? [] : sel.includes(".") ? [sel] : LESSONS.filter(l => String(unitOf(l.code)) === sel).map(l => l.code);
       if (codes.length) await sb.from("unlocks").insert(codes.map(lesson => ({ student_id: r.id, lesson })));
       await sb.from("profiles").update({ lang: $("#alang").value }).eq("id", r.id);   // needs supabase/migrate_5.sql
-      showCredentials(username, password, "Student created ✓");
+      showCredentials(username, password, "Student created ✓", $("#alang").value);
     } catch (e) { $("#aerr").textContent = e.message; $("#acreate").disabled = false; }
   };
 }
@@ -1547,7 +1551,7 @@ function renderStudent(){
       <div class="row two"><button class="btn ghost" id="rc">Cancel</button><button class="btn blue" id="rok">Set password</button></div>`);
     $("#rc").onclick = closeModal;
     $("#rok").onclick = async () => { const p = $("#rpw").value; $("#rok").disabled = true;
-      try { await callAdmin({ action: "reset_password", user_id: s.id, password: p }); showCredentials(s.username, p, "Password reset ✓"); }
+      try { await callAdmin({ action: "reset_password", user_id: s.id, password: p }); showCredentials(s.username, p, "Password reset ✓", s.lang); }
       catch (e) { $("#rerr").textContent = e.message; $("#rok").disabled = false; } };
   };
   if ($("#del")) $("#del").onclick = () => {
