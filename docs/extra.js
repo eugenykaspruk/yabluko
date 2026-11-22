@@ -15,9 +15,11 @@ const EXTRA = {
   {type:"pairs", title:"Буква → слово · Letter → word", hint:"Match each letter to the word that starts with it. Say the word aloud.", items:[
     ["Б","банк"],["Г","гітара"],["Д","дім"],["Ж","журнал"],["К","кіно"],["М","музика"],["П","парк"],["Т","театр"],["Ф","футбол"],["Ц","цирк"],["Ш","школа"],["Ю","юрист"]]}],
  res: [
-  {kind:"article", title:"Ukrainian Alphabet: Full Guide with Examples and Pronunciation", src:"Ukrainian Lessons", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/ukrainian-alphabet/"},
-  {kind:"video", title:"Ukrainian Alphabet Pronunciation", src:"Ukrainian Lessons", dur:"2 min", lang:"en", url:"https://www.youtube.com/watch?v=grL2s5e2AGI"},
-  {kind:"video", title:"How to read the Ukrainian Alphabet. Part I", src:"Speak Ukrainian", dur:"17 min", lang:"en", url:"https://www.youtube.com/watch?v=Gt7O4FLGxjI"}]},
+  {kind:"article", title:"Ukrainian Alphabet: Full Guide with Examples and Pronunciation", src:"Ukrainian Lessons", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/ukrainian-alphabet/"},
+  {kind:"video", title:"Ukrainian Alphabet Pronunciation", src:"Ukrainian Lessons", dur:"2 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=grL2s5e2AGI"},
+  {kind:"video", title:"How to read the Ukrainian Alphabet. Part I", src:"Speak Ukrainian", dur:"17 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=Gt7O4FLGxjI"},
+  {kind:"video", title:"Alfabeto ucraniano con pronunciación en español", src:"Aprende con Victoria", dur:"11 min", lang:"es", url:"https://www.youtube.com/watch?v=qh79eJzC1bw"},
+  {kind:"video", title:"Lección 1. Alfabeto ucraniano", src:"¿Ucraniano? – ¡Fácil!", dur:"21 min", lang:"es", url:"https://www.youtube.com/watch?v=cw6Wgz-uP6M"}]},
 
 "0.2": { games: [
   {type:"quiz", title:"Голосний чи приголосний? · Vowel or consonant?", hint:"Голосні: А, Е, И, І, О, У (and Я, Ю, Є, Ї). The rest are приголосні.", opts:["голосний","приголосний"], fixed:true, items:[
@@ -27,8 +29,10 @@ const EXTRA = {
     ["п'ять","правильно"],["компютер","неправильно"],["сім'я","правильно"],["імя","неправильно"],["м'ясо","правильно"],["дев'ять","правильно"],
     ["память","неправильно"],["комп'ютер","правильно"],["сімя","неправильно"],["здоров'я","правильно"],["пять","неправильно"],["ім'я","правильно"]]}],
  res: [
-  {kind:"video", title:"Learn to read Ukrainian in 25 minutes", src:"VERBA SCHOOL", dur:"27 min", lang:"en", url:"https://www.youtube.com/watch?v=2P2KcHT2cMM"},
-  {kind:"video", title:"Ukrainian alphabet pronunciation: basic phonetics", src:"uaLearner", dur:"8 min", lang:"en", url:"https://www.youtube.com/watch?v=VBmGWu8Sl7s"}]},
+  {kind:"video", title:"Learn to read Ukrainian in 25 minutes", src:"VERBA SCHOOL", dur:"27 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=2P2KcHT2cMM"},
+  {kind:"video", title:"Ukrainian alphabet pronunciation: basic phonetics", src:"uaLearner", dur:"8 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=VBmGWu8Sl7s"},
+  {kind:"video", title:"Aprende a leer en ucraniano con ciudades de Ucrania", src:"Aprende con Victoria", dur:"11 min", lang:"es", url:"https://www.youtube.com/watch?v=mGZeD2tecAE"},
+  {kind:"video", title:"01/36. Alfabeto ucraniano y herramientas", src:"¿Ucraniano? – ¡Fácil!", dur:"27 min", lang:"es", url:"https://www.youtube.com/watch?v=4hfol90jFCQ"}]},
 
 "0.3": { games: [
   {type:"quiz", title:"Яке привітання? · Which greeting?", hint:"Choose what you say at this time or in this situation.", opts:["Доброго ранку!","Добрий день!","Добрий вечір!","На добраніч!","Привіт!","До побачення!"], fixed:true, items:[
@@ -37,9 +41,11 @@ const EXTRA = {
   {type:"pairs", title:"Питання → відповідь · Phrase → reply", hint:"Match each phrase to a good reply.", items:[
     ["Як справи?","Чудово, дякую!"],["Як тебе звати?","Мене звати Олена."],["Дякую!","Будь ласка!"],["Дуже приємно!","Мені теж."],["До побачення!","До зустрічі!"],["Вибачте!","Нічого."]]}],
  res: [
-  {kind:"podcast", title:"ULP 1-01 · Informal greetings in Ukrainian", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode1/"},
-  {kind:"podcast", title:"ULP 1-02 · Formal greetings and saying goodbye", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode2/"},
-  {kind:"video", title:"Greetings in Ukrainian", src:"Mariya", dur:"4 min", lang:"en", url:"https://www.youtube.com/watch?v=Kr8zt2aiJCY"}]},
+  {kind:"podcast", title:"ULP 1-01 · Informal greetings in Ukrainian", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode1/"},
+  {kind:"podcast", title:"ULP 1-02 · Formal greetings and saying goodbye", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode2/"},
+  {kind:"video", title:"Greetings in Ukrainian", src:"Mariya", dur:"4 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=Kr8zt2aiJCY"},
+  {kind:"video", title:"Cómo saludar y despedirse en ucraniano", src:"Anastasiya V.", dur:"6 min", lang:"es", url:"https://www.youtube.com/watch?v=L7abPJCnQvA"},
+  {kind:"video", title:"Lección 2. Primeras frases: saludar y despedirse", src:"¿Ucraniano? – ¡Fácil!", dur:"12 min", lang:"es", url:"https://www.youtube.com/watch?v=Ah4AMyJTt9c"}]},
 
 "0.4": { games: [
   {type:"quiz", title:"Мене чи мені? · Name or age?", hint:"Як мене / тебе / його… звати? but Скільки мені / тобі / йому… років?", items:[
@@ -49,9 +55,12 @@ const EXTRA = {
     ["Як ___ звати? <span class=sub>(вона)</span>","її",["її","їй"]], ["Скільки ___ років? <span class=sub>(вона)</span>","їй",["їй","її"]],
     ["Як ___ звати? <span class=sub>(Ви)</span>","Вас",["Вас","Вам"]], ["Скільки ___ років? <span class=sub>(вони)</span>","їм",["їм","їх"]]]}],
  res: [
-  {kind:"podcast", title:"ULP 1-03 · How to introduce yourself in Ukrainian", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode3/"},
-  {kind:"video", title:"Basic Ukrainian grammar: personal pronouns", src:"Speak Ukrainian", dur:"5 min", lang:"en", url:"https://www.youtube.com/watch?v=WtpQU-oQ8A0"},
-  {kind:"video", title:"Ukrainian lesson 2. Personal pronouns", src:"VERBA SCHOOL", dur:"8 min", lang:"en", url:"https://www.youtube.com/watch?v=UEilBUH_XyA"}]},
+  {kind:"podcast", title:"ULP 1-03 · How to introduce yourself in Ukrainian", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode3/"},
+  {kind:"video", title:"Basic Ukrainian grammar: personal pronouns", src:"Speak Ukrainian", dur:"5 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=WtpQU-oQ8A0"},
+  {kind:"video", title:"Ukrainian lesson 2. Personal pronouns", src:"VERBA SCHOOL", dur:"8 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=UEilBUH_XyA"},
+  {kind:"video", title:"Cómo presentarse en ucraniano", src:"LANGUAGES", dur:"3 min", lang:"es", url:"https://www.youtube.com/watch?v=hqFuJWRgbo8"},
+  {kind:"video", title:"Pronombres personales y algunas frases", src:"Anastasiya V.", dur:"3 min", lang:"es", url:"https://www.youtube.com/watch?v=-nU5vX4QvvU"},
+  {kind:"video", title:"Lección 3. Pronombres personales", src:"¿Ucraniano? – ¡Fácil!", dur:"19 min", lang:"es", url:"https://www.youtube.com/watch?v=NkAC2B5nPkI"}]},
 
 "0.5": { games: [
   {type:"quiz", title:"Професії: закінчення · Jobs: the ending", hint:"Finish the word: кух + ар = кухар.", opts:["ар","ник","ер","іст","ець","ій"], fixed:true, items:[
@@ -89,12 +98,15 @@ const EXTRA = {
     ["74 плюс 45 дорівнює ___","сто дев'ятнадцять",["сто дев'ятнадцять","сто дев'яносто","дев'ятнадцять","сто дев'ять"]],
     ["59 плюс 15 дорівнює ___","сімдесят чотири",["сімдесят чотири","сорок сім","сімдесят","чотирнадцять"]]]}],
  res: [
-  {kind:"podcast", title:"ULP 1-05 · Numbers 1-20 + pronouncing и", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode5/"},
-  {kind:"video", title:"Counting Ukrainian cardinal numbers 0-100", src:"Speak Ukrainian", dur:"14 min", lang:"en", url:"https://www.youtube.com/watch?v=7XrQddM5llE"}]},
+  {kind:"podcast", title:"ULP 1-05 · Numbers 1-20 + pronouncing и", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode5/"},
+  {kind:"video", title:"Counting Ukrainian cardinal numbers 0-100", src:"Speak Ukrainian", dur:"14 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=7XrQddM5llE"},
+  {kind:"video", title:"Números en ucraniano: aprende a contar", src:"Aprende con Victoria", dur:"6 min", lang:"es", url:"https://www.youtube.com/watch?v=6_KYGw-2HoE"},
+  {kind:"video", title:"Lección 44. Los números del 20 al 100", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=C9oZSH6G77Q"}]},
 
 "0.7": { res: [
-  {kind:"video", title:"Talking about age in Ukrainian", src:"Ukrainian Language", dur:"7 min", lang:"en", url:"https://www.youtube.com/watch?v=_5CxnzD1_NA"},
-  {kind:"video", title:"\"How old are you?\" in Ukrainian", src:"bazikschool", dur:"5 min", lang:"en", url:"https://www.youtube.com/watch?v=Forvn1p0jZs"}]},
+  {kind:"video", title:"Talking about age in Ukrainian", src:"Ukrainian Language", dur:"7 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=_5CxnzD1_NA"},
+  {kind:"video", title:"\"How old are you?\" in Ukrainian", src:"bazikschool", dur:"5 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=Forvn1p0jZs"},
+  {kind:"video", title:"25/36 ¿Cuántos años tienes? Los números 20–100", src:"¿Ucraniano? – ¡Fácil!", dur:"37 min", lang:"es", url:"https://www.youtube.com/watch?v=snp_iRGgxZw"}]},
 
 "0.8": { games: [
   {type:"quiz", title:"Великі числа · Big numbers", hint:"Choose the right words for the number.", items:[
@@ -107,8 +119,9 @@ const EXTRA = {
     ["<b>444</b>","чотириста сорок чотири",["чотириста сорок чотири","чотириста чотирнадцять","сорок чотири","чотириста сорок"]],
     ["<b>645</b>","шістсот сорок п'ять",["шістсот сорок п'ять","шістсот п'ятдесят чотири","шістдесят чотири","чотириста шістдесят п'ять"]]]}],
  res: [
-  {kind:"podcast", title:"ULP 1-19 · Asking for a phone number in Ukrainian", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode19/"},
-  {kind:"video", title:"Counting Ukrainian cardinal numbers: 100 to 1 billion", src:"Speak Ukrainian", dur:"6 min", lang:"en", url:"https://www.youtube.com/watch?v=4ffN_2GYgBw"}]},
+  {kind:"podcast", title:"ULP 1-19 · Asking for a phone number in Ukrainian", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode19/"},
+  {kind:"video", title:"Counting Ukrainian cardinal numbers: 100 to 1 billion", src:"Speak Ukrainian", dur:"6 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=4ffN_2GYgBw"},
+  {kind:"video", title:"Lección 45. Los números grandes en ucraniano", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=6EhAz7ZYhpY"}]},
 
 "0.9": { games: [
   {type:"quiz", title:"Який континент? · Which continent?", hint:"Україна – це Європа. And these countries?", opts:["Європа","Азія","Африка","Америка"], fixed:true, items:[
@@ -129,8 +142,10 @@ const EXTRA = {
     ["___ рік","один"],["___ ім'я","одне"],["___ прізвище","одне"],["___ вулиця","одна"],["___ місто","одне"],["___ телефон","один"],["___ сторінка","одна"],
     ["___ завдання","одне"],["___ будинок","один"],["___ адреса","одна"],["___ ніч","одна"],["___ життя","одне"],["___ Микола","один"],["___ любов","одна"]]}],
  res: [
-  {kind:"video", title:"The noun. Gender of the noun", src:"Speak Ukrainian", dur:"10 min", lang:"en", url:"https://www.youtube.com/watch?v=0IIesQyK_cI"},
-  {kind:"video", title:"Ukrainian lesson 4. Noun genders", src:"VERBA SCHOOL", dur:"18 min", lang:"en", url:"https://www.youtube.com/watch?v=QC6CbD2KK5w"}]},
+  {kind:"video", title:"The noun. Gender of the noun", src:"Speak Ukrainian", dur:"10 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=0IIesQyK_cI"},
+  {kind:"video", title:"Ukrainian lesson 4. Noun genders", src:"VERBA SCHOOL", dur:"18 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=QC6CbD2KK5w"},
+  {kind:"video", title:"Lección 21. ¿Es ella o él? El género en ucraniano", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=hHV22gjCVr8"},
+  {kind:"video", title:"Lección 7. El sustantivo: género, número y casos", src:"¿Ucraniano? – ¡Fácil!", dur:"14 min", lang:"es", url:"https://www.youtube.com/watch?v=l_xLWnNi_Hs"}]},
 
 /* ============================ UNIT 1 ============================ */
 "1.1": { games: [
@@ -150,9 +165,11 @@ const EXTRA = {
     ["Це двоюрідний брат. ___ 7 років.","йому",["йому","його","їй","її"]],
     ["Це прабабуся і прадідусь. ___ звати Ганна та Іван.","їх",["їх","їм","її","їй"]]]}],
  res: [
-  {kind:"podcast", title:"ULP 1-06 · Talking about family in Ukrainian + “I have”", src:"Ukrainian Lessons", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode6/"},
-  {kind:"video", title:"Ukrainian Vocabulary: Family", src:"Let's Learn Ukrainian", dur:"8 min", lang:"en", url:"https://www.youtube.com/watch?v=4W8ahBUh1Ho"},
-  {kind:"video", title:"30+ words from family vocabulary", src:"Mariya", dur:"9 min", lang:"en", url:"https://www.youtube.com/watch?v=-EiQSID2fwM"}]},
+  {kind:"podcast", title:"ULP 1-06 · Talking about family in Ukrainian + “I have”", src:"Ukrainian Lessons", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode6/"},
+  {kind:"video", title:"Ukrainian Vocabulary: Family", src:"Let's Learn Ukrainian", dur:"8 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=4W8ahBUh1Ho"},
+  {kind:"video", title:"30+ words from family vocabulary", src:"Mariya", dur:"9 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=-EiQSID2fwM"},
+  {kind:"video", title:"Preguntas en ucraniano: la familia", src:"Language Learning Lab", dur:"3 min", lang:"es", url:"https://www.youtube.com/watch?v=8AELwT_0lFQ"},
+  {kind:"video", title:"08/36 «Yo tengo» y la familia en ucraniano", src:"¿Ucraniano? – ¡Fácil!", dur:"34 min", lang:"es", url:"https://www.youtube.com/watch?v=Y0BSPHWbW5Y"}]},
 
 "1.2": { games: [
   {type:"quiz", title:"Він, вона, вони… · Personal pronouns", hint:"Who is it? я, ти, він, вона, ми, ви, вони.", items:[
@@ -183,8 +200,10 @@ const EXTRA = {
     ["У Назара є старша сестра.","неправда",["правда","неправда"]],
     ["У сестри Назара є хлопець.","правда",["правда","неправда"]]]}],
  res: [
-  {kind:"podcast", title:"ULP 1-07 · More about family + possessive pronouns", src:"Ukrainian Lessons", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode7/"},
-  {kind:"video", title:"Ukrainian Possessive Pronouns + Family Vocabulary", src:"VERBA SCHOOL", dur:"18 min", lang:"en", url:"https://www.youtube.com/watch?v=LARvKb7D38M"}]},
+  {kind:"podcast", title:"ULP 1-07 · More about family + possessive pronouns", src:"Ukrainian Lessons", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode7/"},
+  {kind:"video", title:"Ukrainian Possessive Pronouns + Family Vocabulary", src:"VERBA SCHOOL", dur:"18 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=LARvKb7D38M"},
+  {kind:"video", title:"Lección 23. Мій, твій: los posesivos", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=52sr5WhNH8g"},
+  {kind:"video", title:"Lección 16. Los pronombres posesivos", src:"¿Ucraniano? – ¡Fácil!", dur:"16 min", lang:"es", url:"https://www.youtube.com/watch?v=Uv6Oh3OCNG8"}]},
 
 "1.3": { games: [
   {type:"quiz", title:"Йому, їй, їм · Pronoun forms", hint:"Скільки йому / їй / їм років? У нього / неї / них є…", items:[
@@ -241,9 +260,11 @@ const EXTRA = {
     ["___ сестри","дві"],["___ вікна","два"],["___ книжки","дві"],["___ завдання","два"],["___ ручки","дві"],["___ ліжка","два"],
     ["___ ночі","дві"],["___ столи","два"],["___ статті","дві"],["___ олівці","два"],["___ професії","дві"],["___ дні","два"]]}],
  res: [
-  {kind:"video", title:"How to form plural nouns in Ukrainian", src:"Speak Ukrainian", dur:"13 min", lang:"en", url:"https://www.youtube.com/watch?v=QjyZAl6mlgw"},
-  {kind:"video", title:"Ukrainian Lesson 7. Plural Nouns", src:"VERBA SCHOOL", dur:"18 min", lang:"en", url:"https://www.youtube.com/watch?v=ZUmGaKZvuNc"},
-  {kind:"podcast", title:"ULP 2-42 · Моя кімната · Plural nouns", src:"Ukrainian Lessons", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode42/"}]},
+  {kind:"video", title:"How to form plural nouns in Ukrainian", src:"Speak Ukrainian", dur:"13 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=QjyZAl6mlgw"},
+  {kind:"video", title:"Ukrainian Lesson 7. Plural Nouns", src:"VERBA SCHOOL", dur:"18 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=ZUmGaKZvuNc"},
+  {kind:"podcast", title:"ULP 2-42 · Моя кімната · Plural nouns", src:"Ukrainian Lessons", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode42/"},
+  {kind:"video", title:"Lección 30. ¿Cómo se forma el plural?", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=igMiyy00xI4"},
+  {kind:"video", title:"Plural de los sustantivos: reglas y ejemplos A1", src:"Idiomas fácil para todos", dur:"23 min", lang:"es", url:"https://www.youtube.com/watch?v=TxBeeCoHxo0"}]},
 
 "1.5": { games: [
   {type:"pairs", title:"Половинки речень · Sentence halves", hint:"Match the two halves of each sentence.", items:[
@@ -278,9 +299,11 @@ const EXTRA = {
     ["ю · р · е · п · ш · у · р · е · п · о","перепрошую",["перепрошую","вибачте","прошу","пробачте"]],
     ["ч · а · т · п · р · б · о · е","пробачте",["пробачте","вибачте","перепрошую","прошу"]]]}],
  res: [
-  {kind:"video", title:"Polite Phrases in the Ukrainian language", src:"Speak Ukrainian", dur:"8 min", lang:"en", url:"https://www.youtube.com/watch?v=1LjpiybXYn0"},
-  {kind:"video", title:"Polite Ukrainian Phrases You Must Know", src:"bazikschool", dur:"6 min", lang:"en", url:"https://www.youtube.com/watch?v=HGmQnipdoDA"},
-  {kind:"video", title:"Ukrainian lesson 3. Greetings and Polite Phrases", src:"VERBA SCHOOL", dur:"19 min", lang:"en", url:"https://www.youtube.com/watch?v=59FygPn-wW4"}]},
+  {kind:"video", title:"Polite Phrases in the Ukrainian language", src:"Speak Ukrainian", dur:"8 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=1LjpiybXYn0"},
+  {kind:"video", title:"Polite Ukrainian Phrases You Must Know", src:"bazikschool", dur:"6 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=HGmQnipdoDA"},
+  {kind:"video", title:"Ukrainian lesson 3. Greetings and Polite Phrases", src:"VERBA SCHOOL", dur:"19 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=59FygPn-wW4"},
+  {kind:"video", title:"15 frases para viajar a Ucrania", src:"Aprende con Victoria", dur:"8 min", lang:"es", url:"https://www.youtube.com/watch?v=6zbZdGzx7RU"},
+  {kind:"video", title:"100 frases útiles en ucraniano", src:"Aprende con Victoria", dur:"26 min", lang:"es", url:"https://www.youtube.com/watch?v=3ufmzf4Si_Y"}]},
 
 "1.7": { games: [
   {type:"quiz", title:"Знайди помилку · Fix the mistake", hint:"The word in brackets is wrong. Choose the right form.", items:[
@@ -300,8 +323,10 @@ const EXTRA = {
     ["<b>добрий</b>","позитивна"],["<b>лінивий</b>","негативна"],["<b>веселий</b>","позитивна"],["<b>злий</b>","негативна"],["<b>активний</b>","позитивна"],["<b>грубий</b>","негативна"],
     ["<b>спокійний</b>","позитивна"],["<b>егоїстичний</b>","негативна"],["<b>розумний</b>","позитивна"],["<b>нудний</b>","негативна"],["<b>чесний</b>","позитивна"],["<b>нервовий</b>","негативна"]]}],
  res: [
-  {kind:"video", title:"Learn words to describe character in Ukrainian", src:"Ukrainian Language", dur:"8 min", lang:"en", url:"https://www.youtube.com/watch?v=lzlqzowgB1c"},
-  {kind:"video", title:"Ukrainian vocabulary: describing personality", src:"Red Purple Ukrainian", dur:"19 min", lang:"en", url:"https://www.youtube.com/watch?v=ufQJKXZyeNM"}]},
+  {kind:"video", title:"Learn words to describe character in Ukrainian", src:"Ukrainian Language", dur:"8 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=lzlqzowgB1c"},
+  {kind:"video", title:"Ukrainian vocabulary: describing personality", src:"Red Purple Ukrainian", dur:"19 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=ufQJKXZyeNM"},
+  {kind:"video", title:"Los colores en ucraniano", src:"Aprende con Victoria", dur:"9 min", lang:"es", url:"https://www.youtube.com/watch?v=ohjjAuSudak"},
+  {kind:"video", title:"Los colores en ucraniano (corto)", src:"Clases de Ucraniano en línea", dur:"1 min", lang:"es", url:"https://www.youtube.com/watch?v=49nthKzB3vA"}]},
 
 /* ============================ UNIT 2 ============================ */
 "2.1": { res: [
@@ -342,12 +367,15 @@ const EXTRA = {
     ["Це лікарні. Тут лікарі. Де вони? ___.","у лікарнях",["у лікарнях","у лікарні","у лікарнями","у лікарень"]],
     ["Це стадіони. Тут футболісти. Де вони? ___.","на стадіонах",["на стадіонах","на стадіоні","на стадіони","на стадіонами"]]]}],
  res: [
-  {kind:"podcast", title:"ULP 2-66 · Locative case with places", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode66/"},
-  {kind:"podcast", title:"ULP 1-04 · Where you live and where you are from", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode4/"}]},
+  {kind:"podcast", title:"ULP 2-66 · Locative case with places", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode66/"},
+  {kind:"podcast", title:"ULP 1-04 · Where you live and where you are from", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode4/"},
+  {kind:"video", title:"Lección 62. El caso locativo", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=vXB29Dmc2kY"},
+  {kind:"video", title:"Lección 13. ¿Cómo preguntar «¿Dónde está?»", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=YvYmLZw8yW8"}]},
 
 "2.3": { res: [
-  {kind:"article", title:"Visiting Ukraine · places in town and country", src:"UkrainianLanguage.uk", dur:"", lang:"en", url:"https://www.ukrainianlanguage.org.uk/taste/visiting/visit0.html"},
-  {kind:"podcast", title:"ULP 1-27 · Winter travel in Ukraine", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode27/"}]},
+  {kind:"article", title:"Visiting Ukraine · places in town and country", src:"UkrainianLanguage.uk", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlanguage.org.uk/taste/visiting/visit0.html"},
+  {kind:"podcast", title:"ULP 1-27 · Winter travel in Ukraine", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode27/"},
+  {kind:"video", title:"Lección 125. Los puntos cardinales: norte, sur, este, oeste", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=Rxqp52svHlk"}]},
 
 "2.4": { games: [
   {type:"quiz", title:"Ні, він на роботі · Not there, but tomorrow", hint:"Say where they are now, then use буде / будуть for tomorrow.", items:[
@@ -370,8 +398,10 @@ const EXTRA = {
     ["Іра і Марія завтра ___. <span class=sub>(театр, вистава)</span>","будуть у театрі на виставі",["будуть у театрі на виставі","буде у театрі на виставі","будуть на театрі у виставі","були у театрі на виставі"]],
     ["Моя сім'я завтра ___. <span class=sub>(церква, Літургія)</span>","буде в церкві на Літургії",["буде в церкві на Літургії","будуть в церкві на Літургії","буде на церкві в Літургії","була в церкві на Літургії"]]]}],
  res: [
-  {kind:"article", title:"Минулий час · Past tense in Ukrainian", src:"Ukrainian Lessons", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/?p=7871"},
-  {kind:"video", title:"The verb TO BE in Ukrainian", src:"Ukrainian Zone", dur:"", lang:"en", url:"https://ukrainian-zone.com/series/ukrainian-grammar/17-the-verb-to-be-in-ukrainian"}]},
+  {kind:"article", title:"Минулий час · Past tense in Ukrainian", src:"Ukrainian Lessons", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/?p=7871"},
+  {kind:"video", title:"The verb TO BE in Ukrainian", src:"Ukrainian Zone", dur:"", lang:"en", only:"en", url:"https://ukrainian-zone.com/series/ukrainian-grammar/17-the-verb-to-be-in-ukrainian"},
+  {kind:"video", title:"Lección 46. El tiempo pasado", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=ZikfaZFrMBE"},
+  {kind:"video", title:"Lección 71. El futuro de los verbos", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=VHXLdQmHntU"}]},
 
 "2.5": { games: [
   {type:"quiz", title:"Яке це місто? · Which city is it?", hint:"Read the sentence and choose the city.", opts:["Нью-Йорк","Чикаго","Париж","Рим","Ріо-де-Жанейро","Буенос-Айрес"], fixed:true, items:[
@@ -391,8 +421,9 @@ const EXTRA = {
     ["тут / недалеко / це","Це тут недалеко.",["Це тут недалеко.","Тут недалеко це.","Недалеко це тут."]],
     ["прямо / потім / ідіть / а / наліво","Ідіть прямо, а потім наліво.",["Ідіть прямо, а потім наліво.","Прямо ідіть потім, а наліво.","Наліво а прямо ідіть потім."]]]}],
  res: [
-  {kind:"podcast", title:"ULP 1-18 · Directions in Ukrainian", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode18/"},
-  {kind:"article", title:"Напрямки · Directions vocabulary", src:"Ukrainian Lessons", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/vocabulary-directions/"}]},
+  {kind:"podcast", title:"ULP 1-18 · Directions in Ukrainian", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode18/"},
+  {kind:"article", title:"Напрямки · Directions vocabulary", src:"Ukrainian Lessons", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/vocabulary-directions/"},
+  {kind:"video", title:"Lección 13. ¿Cómo preguntar «¿Dónde está?»", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=YvYmLZw8yW8"}]},
 
 "2.7": { games: [
   {type:"quiz", title:"Велика літера · Capital letters", hint:"Names of people, cities, countries, streets and shops start with a capital letter. Nationalities don't.", items:[
