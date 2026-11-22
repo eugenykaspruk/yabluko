@@ -1539,7 +1539,7 @@ function renderStudent(){
             <button class="btn ghost small" data-unit="${u.n}" data-on="${allOn ? 0 : 1}">${allOn ? "Close all" : "Open all"}</button></div>
             ${ls.map(l => { const p = lessonPctFrom(st.pr, l.code); return `<label class="toggle"><input type="checkbox" data-l="${l.code}" ${st.un.has(l.code) ? "checked" : ""}>
               <span class="tt">${l.code} · ${esc(l.en)}<span>${esc(ST(l.ua))}</span></span><span class="pc" style="color:${p >= 80 ? "var(--green)" : ""}">${p ? p + "%" : ""}</span></label>`; }).join("")}</div>`; }).join("")}
-        <p class="note">Units 2–12 appear here as their games are built.</p></div>`;
+        <p class="note">Units 3–12 appear here as their games are built.</p></div>`;
     $("#tb").onclick = back;
   } else {
     // overview: the things used every class come first

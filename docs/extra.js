@@ -330,8 +330,10 @@ const EXTRA = {
 
 /* ============================ UNIT 2 ============================ */
 "2.1": { res: [
-  {kind:"article", title:"У місті · Around town vocabulary", src:"Ukrainian Lessons", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/?p=7887"},
-  {kind:"podcast", title:"ULP 1-17 · Де центр? Where is the town center?", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode17"}]},
+  {kind:"article", title:"У місті · Around town vocabulary", src:"Ukrainian Lessons", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/vocabulary-town/"},
+  {kind:"podcast", title:"ULP 1-17 · Де центр? Where is the town center?", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode17/"},
+  {kind:"video", title:"Aprende a leer en ucraniano con ciudades de Ucrania", src:"Aprende con Victoria", dur:"11 min", lang:"es", url:"https://www.youtube.com/watch?v=mGZeD2tecAE"},
+  {kind:"video", title:"15 frases para viajar a Ucrania", src:"Aprende con Victoria", dur:"8 min", lang:"es", url:"https://www.youtube.com/watch?v=6zbZdGzx7RU"}]},
 
 "2.2": { games: [
   {type:"quiz", title:"Столиці · Capitals", hint:"Where is the capital? Осло в Норвегії.", items:[
@@ -398,7 +400,7 @@ const EXTRA = {
     ["Іра і Марія завтра ___. <span class=sub>(театр, вистава)</span>","будуть у театрі на виставі",["будуть у театрі на виставі","буде у театрі на виставі","будуть на театрі у виставі","були у театрі на виставі"]],
     ["Моя сім'я завтра ___. <span class=sub>(церква, Літургія)</span>","буде в церкві на Літургії",["буде в церкві на Літургії","будуть в церкві на Літургії","буде на церкві в Літургії","була в церкві на Літургії"]]]}],
  res: [
-  {kind:"article", title:"Минулий час · Past tense in Ukrainian", src:"Ukrainian Lessons", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/?p=7871"},
+  {kind:"article", title:"Минулий час · Past tense in Ukrainian", src:"Ukrainian Lessons", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/grammar-past-tense/"},
   {kind:"video", title:"The verb TO BE in Ukrainian", src:"Ukrainian Zone", dur:"", lang:"en", only:"en", url:"https://ukrainian-zone.com/series/ukrainian-grammar/17-the-verb-to-be-in-ukrainian"},
   {kind:"video", title:"Lección 46. El tiempo pasado", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=ZikfaZFrMBE"},
   {kind:"video", title:"Lección 71. El futuro de los verbos", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=VHXLdQmHntU"}]},
@@ -409,8 +411,9 @@ const EXTRA = {
     ["Тут є музеї Лувр і д'Орсе.","Париж"],["Через річку Сену є старі гарні мости.","Париж"],["Символ міста – Ейфелева вежа. Це столиця моди.","Париж"],
     ["На горі Корковаду – статуя Христа Спасителя.","Ріо-де-Жанейро"],["Тут є чудові пляжі, наприклад, Копакабана.","Ріо-де-Жанейро"],["Тут є великий футбольний стадіон «Маракана».","Ріо-де-Жанейро"]]}],
  res: [
-  {kind:"podcast", title:"ULP 1-26 · Talking about travelling", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode26/"},
-  {kind:"podcast", title:"ULP 1-20 · My favourite city", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode20/"}]},
+  {kind:"podcast", title:"ULP 1-26 · Talking about travelling", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode26/"},
+  {kind:"podcast", title:"ULP 1-20 · My favourite city", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode20/"},
+  {kind:"video", title:"100 frases útiles en ucraniano para viajar o vivir en Ucrania", src:"Aprende con Victoria", dur:"26 min", lang:"es", url:"https://www.youtube.com/watch?v=3ufmzf4Si_Y"}]},
 
 "2.6": { games: [
   {type:"quiz", title:"Склади питання · Build the question", hint:"Put the words in the right order.", items:[
@@ -446,7 +449,9 @@ const EXTRA = {
     ["Наші батьки в ___. <span class=sub>(Нью-Йорці)</span>","Нью-Йорку",["Нью-Йорку","Нью-Йорк","Нью-Йорка","Нью-Йорком"]],
     ["У ___ є 365 днів. <span class=sub>(ріці)</span>","році",["році","рік","року","роком"]]]}],
  res: [
-  {kind:"video", title:"Places around the city", src:"Ukrainian Zone", dur:"", lang:"en", url:"https://ukrainian-zone.com/series/vocabulary/11-places-around-the-city"},
-  {kind:"podcast", title:"ULP 1-20 · My favourite city", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", url:"https://www.ukrainianlessons.com/episode20/"}]},
+  {kind:"video", title:"Places around the city", src:"Ukrainian Zone", dur:"", lang:"en", only:"en", url:"https://ukrainian-zone.com/series/vocabulary/11-places-around-the-city"},
+  {kind:"video", title:"20 common Ukrainian adjectives", src:"Speak Ukrainian", dur:"10 min", lang:"en", only:"en", url:"https://www.youtube.com/watch?v=OixU7XdhNq4"},
+  {kind:"podcast", title:"ULP 1-20 · My favourite city", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode20/"},
+  {kind:"video", title:"Lección 63. El caso locativo de los adjetivos", src:"¿Ucraniano? – ¡Fácil!", dur:"2 min", lang:"es", url:"https://www.youtube.com/watch?v=lrYRkqZaCbw"}]},
 };
 LESSONS.forEach(l => { if (EXTRA[l.code]) l.extra = EXTRA[l.code]; });
