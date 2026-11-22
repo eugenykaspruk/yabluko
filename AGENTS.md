@@ -13,7 +13,7 @@ board; this app is where students practise between classes.
 - Hosting: GitHub Pages from `main` → `/docs` (static files, no build step)
 - Backend: Supabase project `pdusjphcxyugzzfdhcbb` (Postgres + Auth + one Edge Function)
 - Book structure: Intro (lessons 0.1–0.10) + 12 units × 7 lessons = 94 lessons.
-  Built so far: Intro and Unit 1 (17 lessons). Units 2–12 show as "coming soon".
+  Built so far: Intro and Units 1–2 (24 lessons). Units 3–12 show as "coming soon".
 
 ## Who does what
 - **Teacher** (role `teacher`, logs in with email): creates student logins, ticks lessons
@@ -47,7 +47,9 @@ board; this app is where students practise between classes.
   other fonts misplace the Ukrainian combining stress mark U+0301)
 - `docs/app.js`: all logic: login, review engine, drills, lesson games, teacher pages
 - `docs/data.js`: content. `UNITS`, `LESSONS` (each: code, ua/en titles, `words`
-  [[ua, en]], optional `pairs`, `quizzes`), `GENDER` map for the gender drill.
+  [[ua, en]], optional `pairs`, `quizzes`, `extra`), `GENDER` map for the gender drill.
+  `extra` (optional) = { games: [{type: "pairs"|"quiz", title, hint, items, opts?, fixed?}],
+  res: [{kind: "video"|"song"|"article"|"podcast", title, dur, lang: "en"|"es"|"ua", url}] }.
   Stress is written as a backtick after the stressed vowel (`ма`ма`) and converted to U+0301.
 - `docs/es.js`: Spanish for students whose explanation language is Spanish. `ES_UI` (interface),
   `ES_TEXT` (lesson titles, hints, quiz questions/answers, keyed by the English text) and `ES_WORDS`
@@ -111,3 +113,5 @@ languages: Ukrainian gradually replaces the explanation language. Teacher screen
 - Test students (🧪): profiles.is_test (migrate_4.sql adds it, migrate_5.sql grants the update). The teacher ticks it in the student card. They work normally, but their classes and payments are left out of "This month", and the nightly access job never blocks or deletes them. Listed last with a 🧪.
 - Reset progress (teacher, student card → Account): deletes the student's progress and cards rows (scores, word memory). Unlocks and the ledger stay.
 - Typing drill: capital letters count. The ЙЦУКЕН keypad has ⇧ (capitalises the next letter). A right spelling with wrong capitals (київ, як вас звати) is "almost" (why: "case", recorded as Tricky); only the first letter of a phrase is free (caseOk in app.js).
+- Lesson tabs (22 Nov 2026): a lesson has Theory (the GRAMMAR topics, inline; replaces the 📖 button) · Practice (the numbered games; only these make the lesson %) · Extra (l.extra games and resources). Tabs with nothing in them are hidden. First visit opens Theory, later the last tab (localStorage "ltab:<code>"). Extra progress is saved as "x<i>#<item>" (games) and "r<i>" (resource opened); the teacher sees "Extra: n of m done" in the student card; it never counts towards the lesson %. Resources marked en/es are shown only to students with that explanation language. In a lesson the greeting and balance are hidden; ⚙️ sits in the lesson's top row.
+- Unit 2 (22 Nov 2026): lessons 2.1–2.7 with words from the board's Словник frames, pairs, quizzes, grammar notes, Spanish. Stress checked with the dictionary: ліка́рня (the board had лі́карня, fixed), по́тім.

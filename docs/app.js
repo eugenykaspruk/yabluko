@@ -109,6 +109,23 @@ const HINT_UA = {
   "Choose the best phrase.": "Обери найкращу фразу.",
   "Choose the best phrase for the situation.": "Обери найкращу фразу для ситуації.",
   "After з the country changes its ending.": "Після «з» назва країни змінює закінчення.",
+  "Match each place to what happens there.": "Знайди пару: місце і подія.",
+  "Choose the place.": "Обери місце.",
+  "Choose the word that fits.": "Обери правильне слово.",
+  "Match the word to «in / at …».": "Знайди пару: слово і де?",
+  "в/у + a place (inside), на + an event, an open place or a surface.": "в/у + місце, на + подія або відкрите місце.",
+  "Choose the right form after в / у / на.": "Обери правильну форму.",
+  "Match the direction to «in the …».": "Знайди пару: сторона світу і де?",
+  "розташований agrees with the city: він, вона, воно, вони.": "розташований, -а, -е, -і: як місто.",
+  "Match the person to the future of БУТИ.": "Знайди пару: хто і форма БУТИ.",
+  "In the past БУТИ agrees with he / she / it / they.": "Минулий час: як він, вона, воно, вони.",
+  "In the future БУТИ changes with the person.": "Майбутній час: як я, ти, він…",
+  "Match the country to «in …».": "Знайди пару: країна і де?",
+  "Where is it? Choose the place.": "Де це? Обери місце.",
+  "Match what you can do to the place.": "Знайди пару: що можна робити і де.",
+  "Choose the phrase.": "Обери фразу.",
+  "Match the adjective to its noun (look at the ending).": "Знайди пару: прикметник і слово.",
+  "Complete the postcard.": "Допиши поштівку.",
 };
 const HU = h => STAGE >= 2 ? (HINT_UA[h] || X(h)) : X(h);
 
@@ -429,14 +446,15 @@ function render(){
   if (view.tab === "students" || view.tab === "student") { $("#app").className = "wrap wide"; return renderTeacher(); }
   $("#app").className = "wrap";
   const inSession = rs.view !== "menu";
-  $("#app").innerHTML = `
+  const inLesson = !inSession && view.tab === "lesson";
+  $("#app").innerHTML = `${inLesson ? "" : `
     <div class="head">
       <div><h1>Привіт, ${esc(me.nickname)}!</h1>${isTeacher() ? `<p class="sub" style="margin:0">Teacher preview · nothing here is saved</p>` : ""}</div>
       <div class="who">${isTeacher() ? `<button class="chip" id="toT">👩‍🏫 Students</button>` : ""}${!isTeacher() && BAL !== null ? `<span class="balchip ${BAL <= 3 ? "low" : ""}">${STAGE >= 1 ? "Баланс" : X("Balance")}: <b>${Math.max(0, BAL)}</b></span>` : ""}<button class="chip" id="settings" aria-label="Settings">⚙️</button></div>
-    </div>
+    </div>`}
     ${inSession || view.tab === "lesson" || view.tab === "list" || view.tab === "lessons" ? "" : bookBar()}
     <section id="main"></section>`;
-  $("#settings").onclick = () => openSettings();
+  if ($("#settings")) $("#settings").onclick = () => openSettings();
   if ($("#toT")) $("#toT").onclick = () => { view = { tab: "students" }; render(); };
   if (inSession) renderReview();
   else if (view.tab === "lesson") renderLesson();
@@ -860,25 +878,90 @@ function renderLessons_unused(){
   }).join("") + `<p class="status">${X("Lessons open after your class. A lesson counts as done at 80%.")}</p>`;
   el.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { view = { tab: "lesson", code: b.dataset.l, game: "words" }; render(); });
 }
+/* A lesson has three tabs: Theory (grammar notes), Practice (the numbered games, which make the lesson %)
+   and Extra (more games and resources from l.extra; progress is saved and the teacher sees it, but it doesn't
+   count towards the lesson %). First visit opens Theory; after that, the tab the student was on last. */
+const XKIND = { video: "🎬", song: "🎵", article: "📰", podcast: "🎧" };
+function extraItems(l, lang = LANG){
+  const x = l.extra || {};
+  const g = (x.games || []).map((s, i) => ({ kind: "game", i, s, k: "x" + i }));
+  const r = (x.res || []).map((s, i) => ({ kind: "res", i, s, k: "r" + i }))
+    .filter(it => !["en", "es"].includes(it.s.lang) || it.s.lang === lang);   // Spanish students see Spanish resources, English students English ones
+  return [...g, ...r];
+}
+function xPct(rec, it){
+  if (it.kind === "res") return rec[it.k] ? 100 : 0;
+  return Math.min(100, Object.keys(rec).filter(x => x.startsWith(it.k + "#")).length / it.s.items.length * 100);
+}
+const xNew = (rec, l) => extraItems(l).filter(it => !xPct(rec, it)).length;
+function lessonTabs(l){ return [...((GRAMMAR[l.code] || []).length ? ["teo"] : []), "pra", ...(extraItems(l).length ? ["ext"] : [])]; }
+function lessonTab(l){
+  const t = lessonTabs(l); let last = null;
+  if (view.ltab && t.includes(view.ltab)) return view.ltab;
+  try { last = localStorage.getItem("ltab:" + l.code); } catch(e){}
+  return t.includes(last) ? last : t[0];
+}
+function setTab(l, t){ view.ltab = t; try { localStorage.setItem("ltab:" + l.code, t); } catch(e){} }
 function renderLesson(){
   const l = BYCODE[view.code], g = games(l), rec = prog[l.code] || {};
-  $("#main").innerHTML = `<div class="top"><button id="backL">← Назад</button><span id="lpct">${lessonPct(l.code)}%</span>${(GRAMMAR[l.code] || []).length ? `<button class="gbtn" id="gram" aria-label="Grammar">📖</button>` : "<span></span>"}</div>
+  const tab = lessonTab(l), tabs = lessonTabs(l), nx = xNew(rec, l);
+  setTab(l, tab);
+  const tname = { teo: STAGE >= 1 ? "Теорія" : X("Theory"), pra: STAGE >= 1 ? "Практика" : X("Practice"), ext: STAGE >= 1 ? "Додатково" : X("Extra") };
+  $("#main").innerHTML = `<div class="top"><button id="backL">← Назад</button><span id="lpct">${lessonPct(l.code)}%</span><button class="gbtn" id="settings" aria-label="Settings">⚙️</button></div>
     <h2 style="margin-bottom:2px">${l.code} · ${esc(ST(l.ua))}</h2><p class="sub">${esc(l.en)}</p>
-    <div class="gtabs">${g.map((x,i) => `<button data-k="${x.k}" class="${view.game === x.k ? "on" : ""}"><span class="num n${i % 7}">${i+1}</span>${esc(TT(x.t))}${gamePctFrom(rec, l, x.k) >= 80 ? '<span class="ck">✓</span>' : ""}</button>`).join("")}</div>
+    ${tabs.length > 1 ? `<div class="ltabs">${tabs.map(t => `<button data-t="${t}" class="${t === tab ? "on" : ""}">${tname[t]}${t === "ext" && nx ? ` <span class="xn">${nx}</span>` : ""}</button>`).join("")}</div>` : ""}
+    ${tab === "pra" ? `<div class="gtabs">${g.map((x,i) => `<button data-k="${x.k}" class="${view.game === x.k ? "on" : ""}"><span class="num n${i % 7}">${i+1}</span>${esc(TT(x.t))}${gamePctFrom(rec, l, x.k) >= 80 ? '<span class="ck">✓</span>' : ""}</button>`).join("")}</div>` : ""}
     <div id="game"></div>`;
-  if ($("#gram")) $("#gram").onclick = () => openGrammar(l.code);
+  $("#settings").onclick = () => openSettings();
   $("#backL").onclick = () => { if (view.from === "lessons") { view = { tab: "lessons" }; render(); window.scrollTo(0, 0); } else goHome(); };
+  document.querySelectorAll(".ltabs button").forEach(b => b.onclick = () => { setTab(l, b.dataset.t); view.xg = null; renderLesson(); });
   document.querySelectorAll(".gtabs button").forEach(b => b.onclick = () => { view.game = b.dataset.k; renderLesson(); });
   const box = $("#game");
+  if (tab === "teo") return tTheory(box, l);
+  if (tab === "ext") return tExtra(box, l);
+  if (!g.some(x => x.k === view.game)) view.game = "words";
   if (view.game === "words") gWords(box, l);
   else if (view.game === "pairs") gPairs(box, l);
   else gQuiz(box, l, +view.game.slice(1));
 }
+function tTheory(box, l){
+  box.innerHTML = (GRAMMAR[l.code] || []).map(t => gTopic(t, l.code)).join("")
+    + `<div class="row"><button class="btn ghost small" id="gall">${L("Усі теми", "All topics")}</button><button class="btn blue" id="topra">${STAGE >= 1 ? "Практика" : X("Practice")} →</button></div>`;
+  wireSpeak(box);
+  box.querySelectorAll("[data-play]").forEach(b => b.onclick = () => { view.game = b.dataset.play.split("|")[1]; setTab(l, "pra"); renderLesson(); window.scrollTo(0, 0); });
+  $("#gall").onclick = () => openGrammar(l.code, null, true);
+  $("#topra").onclick = () => { setTab(l, "pra"); renderLesson(); window.scrollTo(0, 0); };
+  if (view.gfocus) { const f = view.gfocus; view.gfocus = null; setTimeout(() => { const t = document.getElementById("gt-" + f); if (t) { t.scrollIntoView({ block: "start" }); t.classList.add("flash"); } }, 50); }
+}
+function tExtra(box, l){
+  const rec = prog[l.code] || {}, items = extraItems(l);
+  const open = view.xg && items.find(it => it.k === view.xg && it.kind === "game");
+  if (open) {
+    box.innerHTML = `<div class="row" style="margin:0 0 8px"><button class="btn ghost small" id="xback">← ${STAGE >= 1 ? "Додатково" : X("Extra")}</button></div><div id="xg"></div>`;
+    $("#xback").onclick = () => { view.xg = null; renderLesson(); };
+    const xb = $("#xg");
+    if (open.s.type === "pairs") gPairs(xb, l, open.s, open.k);
+    else gQuiz(xb, l, 0, open.s, open.k);
+    return;
+  }
+  box.innerHTML = `<p class="note" style="margin:0 0 10px">${I("Більше ігор і матеріалів до цього уроку. Вони не входять у відсоток уроку.", "More games and resources for this lesson. They don't count towards the lesson %.")}</p>
+    <div class="xlist">${items.map(it => it.kind === "game"
+      ? `<button class="xcard" data-x="${it.k}"><span class="xic">🎯</span><span class="xt"><b>${esc(TT(it.s.title))}</b><small>${Math.round(xPct(rec, it))}%</small></span>${xPct(rec, it) >= 80 ? '<span class="ck">✓</span>' : !xPct(rec, it) ? `<span class="xdot"></span>` : ""}</button>`
+      : `<a class="xcard" data-r="${it.k}" href="${esc(it.s.url)}" target="_blank" rel="noopener"><span class="xic">${XKIND[it.s.kind] || "🔗"}</span><span class="xt"><b>${esc(it.s.title)}</b><small>${esc(X(it.s.kind ? it.s.kind[0].toUpperCase() + it.s.kind.slice(1) : "Link"))}${it.s.dur ? " · " + esc(it.s.dur) : ""}${it.s.lang ? " · " + it.s.lang.toUpperCase() : ""}</small></span>${rec[it.k] ? '<span class="ck">✓</span>' : `<span class="xdot"></span>`}</a>`).join("")}</div>`;
+  box.querySelectorAll("[data-x]").forEach(b => b.onclick = () => { view.xg = b.dataset.x; renderLesson(); window.scrollTo(0, 0); });
+  box.querySelectorAll("[data-r]").forEach(a => a.onclick = () => { markItem(l.code, a.dataset.r); setTimeout(renderLesson, 300); });
+}
 /* "Next" between the games of a lesson; after the last game: the next open lesson, or home */
 function nextStep(l, k){
+  if (/^x\d/.test(k)) {
+    const xs = extraItems(l).filter(it => it.kind === "game"), at = xs.findIndex(it => it.k === k), n = xs[at + 1];
+    return n ? { label: `${L("Далі", "Next")} →`, go: () => { view.xg = n.k; renderLesson(); window.scrollTo(0, 0); } }
+             : { label: `← ${STAGE >= 1 ? "Додатково" : X("Extra")}`, go: () => { view.xg = null; renderLesson(); window.scrollTo(0, 0); } };
+  }
   const g = games(l), at = g.findIndex(x => x.k === k), nx = g[at + 1];
   if (nx) return { label: `${L("Далі", "Next")} →`, go: () => { view.game = nx.k; renderLesson(); window.scrollTo(0, 0); } };
   const nl = LESSONS[LIDX[l.code] + 1];
+  if (l.extra && extraItems(l).length && xNew(prog[l.code] || {}, l)) return { label: `${STAGE >= 1 ? "Додатково" : X("Extra")} →`, go: () => { setTab(l, "ext"); view.xg = null; renderLesson(); window.scrollTo(0, 0); } };
   if (nl && unlocked.has(nl.code)) return { label: `${L("Наступний урок", "Next lesson")} →`, go: () => { view = { tab: "lesson", code: nl.code, game: "words", from: view.from }; render(); window.scrollTo(0, 0); } };
   return { label: `✓ ${L("Урок завершено", "Lesson finished")} · ${L("На головну", "Home")}`, go: () => goHome() };
 }
@@ -899,34 +982,35 @@ function gWords(box, l){
   $("#wprev").onclick = () => { i = (i-1+deckL.length) % deckL.length; show(); };
   show(); nextBtn(box, l, "words", gamePctFrom(prog[l.code] || {}, l, "words") >= 80);
 }
-function gPairs(box, l){
-  const P = l.pairs.items.map(x => [ST(X(x[0])), ST(X(x[1]))]);
-  box.innerHTML = `<p class="note" style="margin:0 0 10px">${HU(l.pairs.hint)}</p><div class="match"><div class="col" id="mL"></div><div class="col" id="mR"></div></div><div class="status" id="mFb"></div>`;
+function gPairs(box, l, spec = l.pairs, key = "p"){
+  const P = spec.items.map(x => [ST(X(x[0])), ST(X(x[1]))]);
+  box.innerHTML = `<p class="note" style="margin:0 0 10px">${HU(spec.hint || "")}</p><div class="match"><div class="col" id="mL"></div><div class="col" id="mR"></div></div><div class="status" id="mFb"></div>`;
   let sel = null, done = 0, tries = 0;
   function tile(t, i, s){ const b = document.createElement("button"); b.className = "tile"; b.textContent = t; b.dataset.i = i; b.dataset.s = s;
     b.onclick = () => { if (b.classList.contains("done")) return;
       if (!sel || sel.dataset.s === s) { if (sel) sel.classList.remove("sel"); sel = b; b.classList.add("sel"); return; }
       tries++;
-      if (sel.dataset.i === b.dataset.i) { [sel, b].forEach(x => { x.classList.remove("sel"); x.classList.add("done"); }); done++; markItem(l.code, "p#" + b.dataset.i); sel = null;
+      if (sel.dataset.i === b.dataset.i) { [sel, b].forEach(x => { x.classList.remove("sel"); x.classList.add("done"); }); done++; markItem(l.code, key + "#" + b.dataset.i); sel = null;
         if (done === P.length) { $("#mFb").textContent = STAGE >= 2 ? `Чудово! Усі пари. Спроб: ${tries}.` : "Чудово! " + F("All pairs in {0} tries.", tries);
           const nb = $("#gnext"); nb.classList.replace("ghost", "blue"); nb.scrollIntoView({ behavior: "smooth", block: "center" }); }
       } else { const a = sel; [a, b].forEach(x => x.classList.add("wrong")); setTimeout(() => [a, b].forEach(x => x.classList.remove("wrong", "sel")), 350); sel = null; } };
     return b; }
   shuffle(P.map((x,i) => [x[0], i])).forEach(([t,i]) => $("#mL").append(tile(t, i, "L")));
   shuffle(P.map((x,i) => [x[1], i])).forEach(([t,i]) => $("#mR").append(tile(t, i, "R")));
-  nextBtn(box, l, "pairs", false);
+  nextBtn(box, l, key === "p" ? "pairs" : key, false);
 }
 const CASE_PRON = new Set("мене тебе його її нас вас їх мені тобі йому їй нам вам їм чий чия чиє чиї".split(" "));
-function gQuiz(box, l, qi){
-  const Q = l.quizzes[qi]; let order, i, score;
+function gQuiz(box, l, qi, spec, key){
+  const Q = spec || l.quizzes[qi], K = key || "q" + qi; let order, i, score;
+  const gpct = () => key ? xPct(prog[l.code] || {}, { kind: "game", k: K, s: Q }) : gamePctFrom(prog[l.code] || {}, l, K);
   function start(){ order = shuffle(Q.items.map((it, idx) => [...it.slice(0, 2), it[2], idx])); i = 0; score = 0; step(); }
   function step(){
     if (i >= order.length) {
       const pct = score / order.length * 100;
       box.innerHTML = `<div class="card"><div class="big" style="font-family:'Noto Serif',serif;font-size:26px">${score} / ${order.length}</div>
-        <div class="note">${pct === 100 ? "Відмінно!" : pct >= 80 ? I("Добре! Зараховано.", "Добре! Counts as done.") : I("Спробуй ще раз: потрібно 80%.", "Try again: 80% counts as done.")} · ${I(`гру пройдено на ${Math.round(gamePctFrom(prog[l.code] || {}, l, "q" + qi))}%`, F("{0}% of this game done", Math.round(gamePctFrom(prog[l.code] || {}, l, "q" + qi))))}</div></div>
+        <div class="note">${pct === 100 ? "Відмінно!" : pct >= 80 ? I("Добре! Зараховано.", "Добре! Counts as done.") : I("Спробуй ще раз: потрібно 80%.", "Try again: 80% counts as done.")} · ${I(`гру пройдено на ${Math.round(gpct())}%`, F("{0}% of this game done", Math.round(gpct())))}</div></div>
         <div class="row"><button class="btn ghost" id="qa">${L("Ще раз", "Again")}</button></div>`;
-      $("#qa").onclick = start; nextBtn(box, l, "q" + qi, pct >= 80); return;
+      $("#qa").onclick = start; nextBtn(box, l, K, pct >= 80); return;
     }
     const [q0, ans0, own, idx] = order[i], q = X(q0);
     // Shared option lists are written for the start of a sentence; fit them to where the gap is:
@@ -942,15 +1026,15 @@ function gQuiz(box, l, qi){
       <div class="chips">${opts.map(o => `<button class="opt" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div><div id="qfb"></div>`;
     let done = false;
     box.querySelectorAll("[data-o]").forEach(b => b.onclick = () => {
-      if (done) return; done = true; const ok = plain(b.dataset.o) === plain(ans); if (ok) { score++; markItem(l.code, "q" + qi + "#" + idx); }
+      if (done) return; done = true; const ok = plain(b.dataset.o) === plain(ans); if (ok) { score++; markItem(l.code, K + "#" + idx); }
       b.classList.add(ok ? "ok" : "bad");
       if (!ok) box.querySelectorAll("[data-o]").forEach(x => { if (plain(x.dataset.o) === plain(ans)) x.classList.add("ok"); });
       const full = ST(q).replace(/<span[^>]*>[^<]*<\/span>/g, "").replace("___", ST(ans)).trim();
-      const topic = (GRAMMAR[l.code] || []).find(t => t.game === "q" + qi);
+      const topic = key ? null : (GRAMMAR[l.code] || []).find(t => t.game === K);
       $("#qfb").innerHTML = `<div class="fb ${ok ? "ok" : "bad"}">${ok ? "✅ Правильно!" : "❌"} ${q.includes("___") ? esc(full) : I("Відповідь: ", "Answer: ") + "<b>" + esc(ST(ans)) + "</b>"}
           ${!ok && topic ? `<br><button class="linkbtn" id="qrule">📖 ${L("Правило", "See the rule")}</button>` : ""}</div>
         <div class="row"><button class="btn" id="qn">Далі →</button></div>`;
-      if ($("#qrule")) $("#qrule").onclick = () => openGrammar(l.code, topic.id);
+      if ($("#qrule")) $("#qrule").onclick = () => { view.gfocus = topic.id; setTab(l, "teo"); renderLesson(); };
       $("#qn").onclick = () => { i++; step(); }; $("#qn").focus();
     });
   }
@@ -981,7 +1065,7 @@ function openGrammar(code, focus, all){
   $("#gthis").onclick = () => openGrammar(code);
   $("#gall").onclick = () => openGrammar(code, null, true);
   sh.querySelectorAll("[data-play]").forEach(b => b.onclick = () => {
-    const [c, g] = b.dataset.play.split("|"); closeModal(); view = { ...view, tab: "lesson", code: c, game: g }; render(); window.scrollTo(0, 0); });
+    const [c, g] = b.dataset.play.split("|"); closeModal(); view = { ...view, tab: "lesson", code: c, game: g, ltab: "pra" }; render(); window.scrollTo(0, 0); });
   if (focus) setTimeout(() => { const t = document.getElementById("gt-" + focus); if (t) { t.scrollIntoView({ block: "start" }); t.classList.add("flash"); } }, 50);
 }
 
@@ -1486,7 +1570,8 @@ function renderStudent(){
         <div class="panel"><h3>Lessons</h3>
           <p class="note" style="margin-top:0"><b>${openL.length}</b> of ${LESSONS.length} open · <b>${openL.filter(l => lessonPctFrom(st.pr, l.code) >= 80).length}</b> done</p>
           ${nextL ? `<div class="nextl"><span class="tt">Next: ${nextL.code} · ${esc(nextL.en)}<span>${esc(ST(nextL.ua))}</span></span><button class="btn blue small" id="opennext">Open</button></div>` : `<p class="note">All built lessons are open.</p>`}
-          ${recent.map(l => { const p = lessonPctFrom(st.pr, l.code); return `<div class="toggle"><span class="tt">${l.code} · ${esc(l.en)}</span><span class="pc" style="color:${p >= 80 ? "var(--green)" : ""}">${p}%</span></div>`; }).join("")}
+          ${recent.map(l => { const p = lessonPctFrom(st.pr, l.code), xi = extraItems(l, s.lang || "en"), xd = xi.filter(it => xPct(st.pr[l.code] || {}, it) >= 80).length;
+            return `<div class="toggle"><span class="tt">${l.code} · ${esc(l.en)}${xi.length ? `<span>Extra: ${xd} of ${xi.length} done</span>` : ""}</span><span class="pc" style="color:${p >= 80 ? "var(--green)" : ""}">${p}%</span></div>`; }).join("")}
           <button class="linkbtn" id="alll">Manage all lessons →</button></div>
         <div class="panel"><h3>Word memory</h3><p class="note" style="margin-top:0">Words in each review box (0 = new, 6 = long-term).</p>
           <div class="bars">${boxes.map((n,b) => `<div style="height:${n / maxB * 100}%" title="${n} words"><span>${b}</span></div>`).join("")}</div><div style="height:18px"></div></div>
