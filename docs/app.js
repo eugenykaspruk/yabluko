@@ -910,12 +910,13 @@ function renderLesson(){
   $("#main").innerHTML = `<div class="top"><button id="backL">← Назад</button><span id="lpct">${lessonPct(l.code)}%</span><button class="gbtn" id="settings" aria-label="Settings">⚙️</button></div>
     <h2 style="margin-bottom:2px">${l.code} · ${esc(ST(l.ua))}</h2><p class="sub">${esc(l.en)}</p>
     ${tabs.length > 1 ? `<div class="ltabs">${tabs.map(t => `<button data-t="${t}" class="${t === tab ? "on" : ""}">${tname[t]}${t === "ext" && nx ? ` <span class="xn">${nx}</span>` : ""}</button>`).join("")}</div>` : ""}
-    ${tab === "pra" ? `<div class="gtabs">${g.map((x,i) => `<button data-k="${x.k}" class="${view.game === x.k ? "on" : ""}"><span class="num n${i % 7}">${i+1}</span>${esc(TT(x.t))}${gamePctFrom(rec, l, x.k) >= 80 ? '<span class="ck">✓</span>' : ""}</button>`).join("")}</div>` : ""}
+    ${tab === "pra" ? `<div class="gnums">${g.map((x,i) => `<button data-k="${x.k}" class="n${i % 7} ${view.game === x.k ? "on" : ""} ${gamePctFrom(rec, l, x.k) >= 80 ? "done" : ""}" aria-label="${esc(TT(x.t))}">${i+1}</button>`).join("")}</div>
+      <div class="gname">${esc(TT((g.find(x => x.k === view.game) || g[0]).t))}</div>` : ""}
     <div id="game"></div>`;
   $("#settings").onclick = () => openSettings();
   $("#backL").onclick = () => { if (view.from === "lessons") { view = { tab: "lessons" }; render(); window.scrollTo(0, 0); } else goHome(); };
   document.querySelectorAll(".ltabs button").forEach(b => b.onclick = () => { setTab(l, b.dataset.t); view.xg = null; renderLesson(); });
-  document.querySelectorAll(".gtabs button").forEach(b => b.onclick = () => { view.game = b.dataset.k; renderLesson(); });
+  document.querySelectorAll(".gnums button").forEach(b => b.onclick = () => { view.game = b.dataset.k; renderLesson(); });
   const box = $("#game");
   if (tab === "teo") return tTheory(box, l);
   if (tab === "ext") return tExtra(box, l);
