@@ -48,8 +48,12 @@ board; this app is where students practise between classes.
 - `docs/app.js`: all logic: login, review engine, drills, lesson games, teacher pages
 - `docs/data.js`: content. `UNITS`, `LESSONS` (each: code, ua/en titles, `words`
   [[ua, en]], optional `pairs`, `quizzes`, `extra`), `GENDER` map for the gender drill.
-  `extra` (optional) = { games: [{type: "pairs"|"quiz", title, hint, items, opts?, fixed?}],
-  res: [{kind: "video"|"song"|"article"|"podcast", title, dur, lang: "en"|"es"|"ua", url}] }.
+  `extra` (optional) lives in `docs/extra.js` (`EXTRA[code]`, attached to the lesson on load) =
+  { games: [{type: "pairs"|"quiz", title, hint, items, opts?, fixed?}],
+  res: [{kind: "video"|"song"|"article"|"podcast", title, src, dur, lang: "en"|"es"|"ua", url, only?}] }.
+  A resource with lang "es" is shown only to Spanish-speaking students; an English one that has a Spanish
+  replacement gets only: "en". Everything else is shown to everyone. Board Extra practice and Extra resources
+  for Intro and Units 1–2 were moved here (22 Nov 2026); new units put them here, not on the board.
   Stress is written as a backtick after the stressed vowel (`ма`ма`) and converted to U+0301.
 - `docs/es.js`: Spanish for students whose explanation language is Spanish. `ES_UI` (interface),
   `ES_TEXT` (lesson titles, hints, quiz questions/answers, keyed by the English text) and `ES_WORDS`

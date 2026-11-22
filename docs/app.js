@@ -886,7 +886,7 @@ function extraItems(l, lang = LANG){
   const x = l.extra || {};
   const g = (x.games || []).map((s, i) => ({ kind: "game", i, s, k: "x" + i }));
   const r = (x.res || []).map((s, i) => ({ kind: "res", i, s, k: "r" + i }))
-    .filter(it => !["en", "es"].includes(it.s.lang) || it.s.lang === lang);   // Spanish students see Spanish resources, English students English ones
+    .filter(it => it.s.lang === "es" ? lang === "es" : !it.s.only || it.s.only === lang);   // Spanish resources only for Spanish students; an English one with a Spanish replacement is marked only:"en"
   return [...g, ...r];
 }
 function xPct(rec, it){
@@ -947,7 +947,7 @@ function tExtra(box, l){
   box.innerHTML = `<p class="note" style="margin:0 0 10px">${I("Більше ігор і матеріалів до цього уроку. Вони не входять у відсоток уроку.", "More games and resources for this lesson. They don't count towards the lesson %.")}</p>
     <div class="xlist">${items.map(it => it.kind === "game"
       ? `<button class="xcard" data-x="${it.k}"><span class="xic">🎯</span><span class="xt"><b>${esc(TT(it.s.title))}</b><small>${Math.round(xPct(rec, it))}%</small></span>${xPct(rec, it) >= 80 ? '<span class="ck">✓</span>' : !xPct(rec, it) ? `<span class="xdot"></span>` : ""}</button>`
-      : `<a class="xcard" data-r="${it.k}" href="${esc(it.s.url)}" target="_blank" rel="noopener"><span class="xic">${XKIND[it.s.kind] || "🔗"}</span><span class="xt"><b>${esc(it.s.title)}</b><small>${esc(X(it.s.kind ? it.s.kind[0].toUpperCase() + it.s.kind.slice(1) : "Link"))}${it.s.dur ? " · " + esc(it.s.dur) : ""}${it.s.lang ? " · " + it.s.lang.toUpperCase() : ""}</small></span>${rec[it.k] ? '<span class="ck">✓</span>' : `<span class="xdot"></span>`}</a>`).join("")}</div>`;
+      : `<a class="xcard" data-r="${it.k}" href="${esc(it.s.url)}" target="_blank" rel="noopener"><span class="xic">${XKIND[it.s.kind] || "🔗"}</span><span class="xt"><b>${esc(it.s.title)}</b><small>${esc(X(it.s.kind ? it.s.kind[0].toUpperCase() + it.s.kind.slice(1) : "Link"))}${it.s.src ? " · " + esc(it.s.src) : ""}${it.s.dur ? " · " + esc(it.s.dur) : ""}${it.s.lang ? " · " + it.s.lang.toUpperCase() : ""}</small></span>${rec[it.k] ? '<span class="ck">✓</span>' : `<span class="xdot"></span>`}</a>`).join("")}</div>`;
   box.querySelectorAll("[data-x]").forEach(b => b.onclick = () => { view.xg = b.dataset.x; renderLesson(); window.scrollTo(0, 0); });
   box.querySelectorAll("[data-r]").forEach(a => a.onclick = () => { markItem(l.code, a.dataset.r); setTimeout(renderLesson, 300); });
 }
