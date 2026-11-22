@@ -20,7 +20,6 @@ const ES_UI = {
  "Home": "Inicio",
  "Grammar": "Gramática",
  "This lesson": "Esta lección",
- "All topics": "Todos los temas",
  "Practise this": "Practica esto",
  "See the rule": "Ver la regla",
  "Nothing here yet.": "Aquí todavía no hay nada.",

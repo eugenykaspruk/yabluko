@@ -314,8 +314,6 @@ html{touch-action:manipulation}
 
 /* grammar panel */
 .gbtn{width:40px;height:40px;border-radius:50% !important;padding:0 !important;font-size:18px !important;display:flex;align-items:center;justify-content:center;justify-self:end}
-.ghead{display:flex;justify-content:space-between;align-items:center}
-.ghead h2{margin:0}
 .gtopic{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px;background:var(--card)}
 .gtopic h3{margin:0 0 6px;font-family:"Noto Serif",serif}
 .gtopic h3 small{display:block;font-family:"Noto Sans",sans-serif;font-weight:500;font-size:13px;color:var(--muted)}

@@ -927,10 +927,9 @@ function renderLesson(){
 }
 function tTheory(box, l){
   box.innerHTML = (GRAMMAR[l.code] || []).map(t => gTopic(t, l.code)).join("")
-    + `<div class="row"><button class="btn ghost small" id="gall">${L("Усі теми", "All topics")}</button><button class="btn blue" id="topra">${STAGE >= 1 ? "Практика" : X("Practice")} →</button></div>`;
+    + `<div class="row"><button class="btn blue" id="topra">${STAGE >= 1 ? "Практика" : X("Practice")} →</button></div>`;
   wireSpeak(box);
   box.querySelectorAll("[data-play]").forEach(b => b.onclick = () => { view.game = b.dataset.play.split("|")[1]; setTab(l, "pra"); renderLesson(); window.scrollTo(0, 0); });
-  $("#gall").onclick = () => openGrammar(l.code, null, true);
   $("#topra").onclick = () => { setTab(l, "pra"); renderLesson(); window.scrollTo(0, 0); };
   if (view.gfocus) { const f = view.gfocus; view.gfocus = null; setTimeout(() => { const t = document.getElementById("gt-" + f); if (t) { t.scrollIntoView({ block: "start" }); t.classList.add("flash"); } }, 50); }
 }
@@ -1055,21 +1054,6 @@ function gTopic(t, code){
     ${t.cmp ? `<div class="gcmp"><b>${lg === "es" ? "🇪🇸 Si hablas español" : "🇬🇧 If you speak English"}</b><br>${t.cmp[lg]}</div>` : ""}
     ${t.game && code ? `<button class="btn ghost small" data-play="${code}|${t.game}">${L("Практикуй", "Practise this")} →</button>` : ""}</div>`;
 }
-function openGrammar(code, focus, all){
-  const lastOpen = LESSONS.filter(l => unlocked.has(l.code) && GRAMMAR[l.code]).map(l => l.code);
-  const list = all ? lastOpen : [code];
-  openModal(`<div class="ghead"><h2>📖 ${L("Граматика", "Grammar")}</h2><button class="setback" id="gclose">✕</button></div>
-    <div class="seg"><button class="${all ? "" : "on"}" id="gthis">${L("Цей урок", "This lesson")} ${code}</button><button class="${all ? "on" : ""}" id="gall">${L("Усі теми", "All topics")}</button></div>
-    ${list.map(c => `${all ? `<h3 class="sec">${c} · ${esc(ST(BYCODE[c].ua))}</h3>` : ""}${(GRAMMAR[c] || []).map(t => gTopic(t, c)).join("")}`).join("") || `<p class="note">${I("Тут поки нічого немає.", "Nothing here yet.")}</p>`}`);
-  const sh = $("#sheet"); wireSpeak(sh);
-  $("#gclose").onclick = closeModal;
-  $("#gthis").onclick = () => openGrammar(code);
-  $("#gall").onclick = () => openGrammar(code, null, true);
-  sh.querySelectorAll("[data-play]").forEach(b => b.onclick = () => {
-    const [c, g] = b.dataset.play.split("|"); closeModal(); view = { ...view, tab: "lesson", code: c, game: g, ltab: "pra" }; render(); window.scrollTo(0, 0); });
-  if (focus) setTimeout(() => { const t = document.getElementById("gt-" + focus); if (t) { t.scrollIntoView({ block: "start" }); t.classList.add("flash"); } }, 50);
-}
-
 /* =====================================================================
    WORD LIST
    ===================================================================== */
