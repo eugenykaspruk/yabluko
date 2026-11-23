@@ -3,6 +3,16 @@
    ES_WORDS: word meanings, keyed by word id (lesson:word without stress marks).
    Nouns take the article (la familia); neutral Spanish, no regional words. Missing keys fall back to English. */
 const ES_UI = {
+ "Keyboard": "Teclado",
+ "Ukrainian keyboard": "Teclado ucraniano",
+ "Type here, then copy it into Miro.": "Escribe aquí y luego cópialo en Miro.",
+ "Type in Ukrainian and copy it into Miro": "Escribe en ucraniano y cópialo en Miro",
+ "Copy": "Copiar",
+ "Clear": "Borrar",
+ "Nothing to copy yet": "Todavía no hay nada que copiar",
+ "Copied! Paste it into Miro with {0}": "¡Copiado! Pégalo en Miro con {0}",
+ "Couldn't copy: select the text and press {0}": "No se pudo copiar: selecciona el texto y pulsa {0}",
+ "Your computer keys type Ukrainian here too: the small letter shows which key to press.": "Las teclas de tu computadora también escriben en ucraniano aquí: la letra pequeña indica qué tecla pulsar.",
  "Balance": "Saldo",
  "Theory": "Teoría",
  "Practice": "Práctica",

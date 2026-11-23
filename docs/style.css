@@ -352,3 +352,14 @@ html{touch-action:manipulation}
 .gnums button.done{opacity:1}
 .gnums button.done::after{content:"✓";position:absolute;right:-4px;top:-4px;width:17px;height:17px;border-radius:50%;background:var(--green);color:#fff;font-size:11px;line-height:17px}
 .gname{font-weight:700;font-size:15px;margin:2px 0 12px}
+
+/* keyboard page (#keyboard) */
+textarea.kbtext{display:block;width:100%;min-height:96px;resize:vertical;margin-top:12px;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);font:500 20px/1.4 "Noto Sans",system-ui,sans-serif}
+textarea.kbtext:focus{outline:none;border-color:var(--ink)}
+.kbacts{grid-template-columns:1fr 2fr}
+.kbpage button{position:relative;max-width:52px;height:48px;font-size:19px}
+.kbpage button i{position:absolute;right:4px;bottom:2px;font-style:normal;font-size:10px;color:var(--muted);line-height:1}
+.kbpage button.sp{max-width:300px}
+.kbpage button.bs,.kbpage button.sh{max-width:70px}
+.kblink{color:var(--blue);font-weight:600;font-size:14px;text-decoration:none}
+.kblink:hover{text-decoration:underline}

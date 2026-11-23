@@ -262,6 +262,7 @@ function wireSpeak(root){ root.querySelectorAll("[data-say]").forEach(b => b.onc
    LOGIN
    ===================================================================== */
 function renderLogin(msg){
+  if (location.hash === "#keyboard") return renderKeyboard();
   $("#app").className = "wrap";
   $("#app").innerHTML = `<div class="login">
     <div class="logo">🇺🇦</div>
@@ -276,6 +277,7 @@ function renderLogin(msg){
       <button class="btn blue" id="lbtn">${L("Увійти", "Log in")}</button>
     </form>
     <p class="hint2" style="text-align:center;margin-top:16px">${X("Forgot your password? Ask your teacher to reset it.")}</p>
+    <p style="text-align:center;margin-top:18px"><a class="kblink" href="#keyboard">⌨️ ${L("Українська клавіатура", "Ukrainian keyboard")}</a></p>
   </div>`;
   $("#lf").onsubmit = async e => {
     e.preventDefault();
@@ -411,7 +413,7 @@ function openFromHash(){
   else { view = { tab: "home" }; setTimeout(() => toast(I2(`Урок ${code} відкриється після заняття`, F("Lesson {0} opens after your class", code))), 300); }
   render(); return true;
 }
-window.addEventListener("hashchange", () => { if (me) openFromHash(); });
+window.addEventListener("hashchange", () => { if (location.hash === "#keyboard") renderKeyboard(); else if (me) openFromHash(); });
 
 /* =====================================================================
    SHELL
@@ -440,6 +442,7 @@ function bookBar(){
     </div>`;
 }
 function render(){
+  if (location.hash === "#keyboard") return renderKeyboard();
   if (!me) return renderLogin();
   EN = false;
   updateStage();
@@ -489,6 +492,7 @@ function renderHome(){
       <button class="mode" data-m="gender" ${nouns < 3 ? "disabled" : ""}><span class="ic">🎨</span><b>він · вона · воно</b><span>${I("Рід іменників", "Noun genders")}</span></button>
       <button class="mode" data-m="stress" ${str < 3 ? "disabled" : ""}><span class="ic">🎯</span><b>Наголос</b><span>${I("Знайди наголос", "Find the stress")}</span></button>
       <button class="mode wide" id="toList"><span class="ic">📖</span><b>${L("Словник", "Word list")}</b><span>${STAGE >= 2 ? `слів: ${d.length} · вивчено: ${d.filter(w => (cardOf(w.id).box || 0) >= 3).length}` : F("{0} words · {1} learned · newest first", d.length, d.filter(w => (cardOf(w.id).box || 0) >= 3).length)}</span></button>
+      <button class="mode wide" id="toKb"><span class="ic">🇺🇦</span><b>${L("Клавіатура", "Keyboard")}</b><span>${I("Пиши українською і копіюй у Miro", "Type in Ukrainian and copy it into Miro")}</span></button>
     </div>
     ${met < 4 && d.length ? `<p class="status">${I("Ігри відкриються після перших карток.", "The practice games open after your first flashcards.")}</p>` : ""}`;
   if ($("#start")) $("#start").onclick = () => startReview("cards");
@@ -496,6 +500,7 @@ function renderHome(){
   el.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { view = { tab: "lesson", code: b.dataset.l, game: "words" }; render(); window.scrollTo(0, 0); });
   el.querySelectorAll("[data-m]").forEach(b => b.onclick = () => startReview(b.dataset.m));
   $("#toList").onclick = () => { view = { tab: "list" }; render(); window.scrollTo(0, 0); };
+  $("#toKb").onclick = () => { location.hash = "keyboard"; };
   if ($("#allL")) $("#allL").onclick = () => { view = { tab: "lessons" }; render(); window.scrollTo(0, 0); };
 }
 function lessonRow(code){
@@ -670,6 +675,77 @@ const TOUCH = matchMedia("(pointer: coarse)").matches;
 function nativeKb(v){ try { if (v !== undefined) localStorage.setItem("nativeKb", v ? "1" : ""); return !!localStorage.getItem("nativeKb"); } catch(e){ return false; } }
 function setCaret(inp, i){ if (document.activeElement !== inp) return; try { inp.setSelectionRange(i, i); } catch(e){} }
 const KB_ROWS = ["й ц у к е н г ш щ з х ї", "ф і в а п р о л д ж є", "ґ я ч с м и т ь б ю '"].map(r => r.split(" "));
+
+/* ---------- keyboard page (#keyboard): type Ukrainian without a Ukrainian keyboard, then copy it into Miro.
+   Works without logging in. The computer's own keys type Ukrainian too, by position (the standard Ukrainian layout,
+   the same one the on-screen keys show); the small Latin letter on each key says which key that is. ---------- */
+const KB_LATIN = { "й":"Q","ц":"W","у":"E","к":"R","е":"T","н":"Y","г":"U","ш":"I","щ":"O","з":"P","х":"[","ї":"]",
+  "ф":"A","і":"S","в":"D","а":"F","п":"G","р":"H","о":"J","л":"K","д":"L","ж":";","є":"'",
+  "ґ":"\\","я":"Z","ч":"X","с":"C","м":"V","и":"B","т":"N","ь":"M","б":",","ю":".","'":"`" };
+const KB_CODE = { Backquote:"'", Backslash:"ґ", IntlBackslash:"ґ" };
+for (const [c, k] of Object.entries(KB_LATIN)) if (/^[A-Z]$/.test(k)) KB_CODE["Key" + k] = c;
+Object.assign(KB_CODE, { BracketLeft:"х", BracketRight:"ї", Semicolon:"ж", Quote:"є", Comma:"б", Period:"ю" });
+const KB_SHIFT_ONLY = { Slash: [".", ","], Digit2: [null, '"'], Digit4: [null, ";"], Digit6: [null, ":"], Digit7: [null, "?"] };
+const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+function kbText(v){ try { if (v !== undefined) localStorage.setItem("kbText", v); return localStorage.getItem("kbText") || ""; } catch(e){ return v || ""; } }
+function closeKeyboard(){ history.replaceState(null, "", location.pathname + location.search); if (me) goHome(); else renderLogin(); }
+function renderKeyboard(){
+  $("#app").className = "wrap";
+  const paste = IS_MAC ? "⌘V" : "Ctrl+V", phone = TOUCH && !nativeKb();
+  const key = x => `<button data-c="${esc(x)}">${esc(x)}${TOUCH ? "" : `<i>${esc(KB_LATIN[x] || "")}</i>`}</button>`;
+  $("#app").innerHTML = `<div class="top"><button id="kbBack">← Назад</button><span>${L("Клавіатура", "Keyboard")}</span><span></span></div>
+    <p class="sub" style="margin:4px 0 0">${I("Пиши тут, а потім скопіюй у Miro.", "Type here, then copy it into Miro.")}</p>
+    <textarea class="kbtext" id="kbt" rows="3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="українською…" ${phone ? 'readonly inputmode="none"' : ""}>${esc(kbText())}</textarea>
+    <div class="row two kbacts"><button class="btn ghost" id="kbClear">${L("Стерти", "Clear")}</button><button class="btn blue" id="kbCopy">📋 ${L("Копіювати", "Copy")}</button></div>
+    ${nativeKb() && TOUCH ? "" : `<div class="kb kbpage">${KB_ROWS.map(r => `<div class="kr">${r.map(key).join("")}</div>`).join("")}
+      <div class="kr"><button class="sh" data-c="SH" aria-label="Shift">⇧</button><button data-c=",">,</button><button class="sp" data-c=" ">${L("пробіл", "space")}</button><button data-c=".">.</button><button data-c="?">?</button><button class="bs" data-c="BS">⌫</button><button class="bs" data-c="NL" aria-label="New line">↵</button></div></div>`}
+    ${TOUCH ? `<button class="kbswitch" id="kbswitch">${nativeKb() ? "🇺🇦 " + L("Клавіатура додатка", "Use the app keyboard") : "⌨️ " + L("Моя клавіатура", "Use my phone keyboard")}</button>`
+      : `<p class="hint2" style="text-align:center">${I("Клавіші комп'ютера теж пишуть українською: маленька літера показує, яку клавішу натиснути.", "Your computer keys type Ukrainian here too: the small letter shows which key to press.")}</p>`}`;
+  const ta = $("#kbt"); let shift = false;
+  const save = () => kbText(ta.value);
+  function put(c){
+    const focused = document.activeElement === ta, v = ta.value;
+    const a = focused ? ta.selectionStart : v.length, b = focused ? ta.selectionEnd : v.length;
+    if (c === "BS") { const from = b > a ? a : Math.max(0, a - 1); ta.value = v.slice(0, from) + v.slice(b); setCaret(ta, from); }
+    else { ta.value = v.slice(0, a) + c + v.slice(b); setCaret(ta, a + c.length); }
+    save();
+  }
+  function paintShift(){ document.querySelectorAll(".kbpage [data-c]").forEach(k => { const c = k.dataset.c;
+      if (c.length === 1 && KB_LATIN[c] !== undefined && c !== "'") k.firstChild.textContent = shift ? c.toUpperCase() : c; });
+    const sk = document.querySelector(".kbpage .sh"); if (sk) sk.classList.toggle("on", shift); }
+  document.querySelectorAll(".kbpage [data-c]").forEach(b => {
+    b.onpointerdown = e => e.preventDefault();
+    b.onclick = () => { const c = b.dataset.c;
+      if (c === "SH") { shift = !shift; return paintShift(); }
+      if (c === "BS") return put("BS");
+      if (c === "NL") return put("\n");
+      put(shift ? c.toUpperCase() : c);
+      if (shift && c !== " ") { shift = false; paintShift(); } };
+  });
+  // the computer's own keys, mapped by position; Ctrl/⌘/Alt shortcuts (copy, paste, select all) pass through
+  ta.onkeydown = e => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+    const up = e.shiftKey !== (e.getModifierState && e.getModifierState("CapsLock"));
+    let c = KB_CODE[e.code];
+    if (c) c = up && c !== "'" ? c.toUpperCase() : c;
+    else if (KB_SHIFT_ONLY[e.code]) c = KB_SHIFT_ONLY[e.code][e.shiftKey ? 1 : 0];
+    if (!c) return;
+    e.preventDefault(); put(c);
+  };
+  ta.oninput = save;
+  $("#kbBack").onclick = closeKeyboard;
+  $("#kbClear").onclick = () => { ta.value = ""; save(); if (!TOUCH) ta.focus(); };
+  $("#kbCopy").onclick = async () => {
+    const t = ta.value; if (!t.trim()) return toast(I2("Ще нічого копіювати", "Nothing to copy yet"));
+    let ok = false;
+    try { await navigator.clipboard.writeText(t); ok = true; } catch(e) {
+      try { const r = ta.readOnly; ta.readOnly = false; ta.select(); ok = document.execCommand("copy"); ta.readOnly = r; } catch(e2){} }
+    toast(ok ? I2(`Скопійовано! Встав у Miro: ${paste}`, F("Copied! Paste it into Miro with {0}", paste))
+             : I2(`Не вдалося: виділи текст і натисни ${IS_MAC ? "⌘C" : "Ctrl+C"}`, F("Couldn't copy: select the text and press {0}", IS_MAC ? "⌘C" : "Ctrl+C")));
+  };
+  const ks = $("#kbswitch"); if (ks) { ks.onpointerdown = e => e.preventDefault(); ks.onclick = () => { nativeKb(!nativeKb()); renderKeyboard(); if (nativeKb()) { try { $("#kbt").focus(); } catch(e){} } }; }
+  if (!TOUCH) setTimeout(() => { try { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } catch(e){} }, 30);
+}
 const clean = s => plain(s).toLowerCase().replace(/[’ʼ´`]/g,"'").replace(/\(.*?\)/g,"").replace(/[…?!.,]/g,"").replace(/\s+/g," ").trim();
 function variants(ua){
   const out = new Set();
