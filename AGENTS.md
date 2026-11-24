@@ -120,3 +120,11 @@ languages: Ukrainian gradually replaces the explanation language. Teacher screen
 - Lesson tabs (22 Nov 2026): a lesson has Theory (the GRAMMAR topics, inline; replaces the 📖 button) · Practice (the numbered games; only these make the lesson %) · Extra (l.extra games and resources). Tabs with nothing in them are hidden. First visit opens Theory, later the last tab (localStorage "ltab:<code>"). Extra progress is saved as "x<i>#<item>" (games) and "r<i>" (resource opened); the teacher sees "Extra: n of m done" in the student card; it never counts towards the lesson %. Resources marked en/es are shown only to students with that explanation language. In a lesson the greeting and balance are hidden; ⚙️ sits in the lesson's top row.
 - Unit 2 (22 Nov 2026): lessons 2.1–2.7 with words from the board's Словник frames, pairs, quizzes, grammar notes, Spanish. Stress checked with the dictionary: ліка́рня (the board had лі́карня, fixed), по́тім.
 - Unit 2 resources (22 Nov 2026): every lesson 2.1–2.7 now has its own English list (marked only:"en") and a Spanish list (YouTube videos checked for real Spanish audio/titles via oembed). release.sh now also stamps extra.js.
+
+## 24 Nov 2026
+- Keyboard page: `#keyboard` (works logged out; linked from home and login). Computer keys type Ukrainian by ЙЦУКЕН position.
+- Extra game `type:"order"` (word tiles): each item lists accepted sentences, the usual one first; punctuation/caps not checked.
+  Alternatives in 1.6 and 2.6 were approved by the teacher. 2.6 teaches ліворуч/праворуч as main, наліво/направо accepted.
+- "Fix the mistake" games: the wrong word is `<span class=wrong>X</span>___` (shown crossed out in the gap).
+- Miro: z-order follows creation order and can't be changed via the API. Draggable cards (fill #fff6b6) must be created
+  AFTER the answer zones (fill #fffbed, stroke #ffdc4a). On ES and Facundo's boards the cards were recreated on top (24 Nov).

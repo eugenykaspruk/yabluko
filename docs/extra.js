@@ -422,7 +422,7 @@ const EXTRA = {
     ["У місті є добрий ресторан?","Є у місті добрий ресторан?"],
     ["Вибачте, я не знаю.","Я не знаю, вибачте."],
     ["Це тут недалеко."],
-    ["Ідіть прямо, а потім наліво."]]}],
+    ["Ідіть прямо, а потім ліворуч.","Ідіть прямо, а потім наліво."]]}],
  res: [
   {kind:"podcast", title:"ULP 1-18 · Directions in Ukrainian", src:"Ukrainian Lessons Podcast", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/episode18/"},
   {kind:"article", title:"Напрямки · Directions vocabulary", src:"Ukrainian Lessons", dur:"", lang:"en", only:"en", url:"https://www.ukrainianlessons.com/vocabulary-directions/"},
