@@ -1091,14 +1091,14 @@ function gQuiz(box, l, qi, spec, key){
     const [q0, ans0, own, idx] = order[i], q = X(q0);
     // Shared option lists are written for the start of a sentence; fit them to where the gap is:
     // capital letter at the start, small letter for pronouns in the middle (the polite Вас / Вам keep theirs).
-    const atStart = /^(___|.*[.!?]\s+___)/.test(q.replace(/<[^>]+>/g, "").trim());
+    const atStart = /^(___|.*[.!?]\s+___)/.test(q.replace(/<span class=wrong>[^<]*<\/span>/g, "").replace(/<[^>]+>/g, "").trim());
     const fit = o => { o = String(o); if (atStart) return o.charAt(0).toUpperCase() + o.slice(1);
       const low = o.charAt(0).toLowerCase() + o.slice(1);
       return CASE_PRON.has(plain(low)) && !/^Ва[смш]/.test(o) ? low : o; };
     const ans = fit(X(ans0)); let opts = (own || Q.opts).map(o => ST(fit(X(o)))); if (!Q.fixed) opts = shuffle(opts);
     box.innerHTML = `<div class="progress"><div style="width:${i / order.length * 100}%"></div></div>
       <p class="note" style="margin:0 0 6px">${HU(Q.hint || "")}</p>
-      <div class="q">${ST(q).replace("___", '<span class="gap">&nbsp;</span>').replace(/class=sub/g, 'class="sub2"')}</div>
+      <div class="q">${ST(q).replace(/<span class=wrong>([^<]*)<\/span>___/, '<span class="gap wrong"><s>$1</s></span>').replace("___", '<span class="gap">&nbsp;</span>').replace(/class=sub/g, 'class="sub2"')}</div>
       <div class="chips">${opts.map(o => `<button class="opt" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div><div id="qfb"></div>`;
     let done = false;
     box.querySelectorAll("[data-o]").forEach(b => b.onclick = () => {

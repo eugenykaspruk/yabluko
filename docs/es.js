@@ -209,7 +209,7 @@ const ES_TEXT = {
  "Unscramble": "Ordena las letras",
  "Which polite word is hidden here?": "¿Qué palabra de cortesía se esconde aquí?",
  "Fix the mistake": "Corrige el error",
- "The word in brackets is wrong. Choose the right form.": "La palabra entre paréntesis está mal. Elige la forma correcta.",
+ "The crossed-out word is wrong. Choose the right form.": "La palabra tachada está mal. Elige la forma correcta.",
  "Character": "El carácter",
  "Is it a good (позитивна) or a bad (негативна) trait?": "¿Es un rasgo bueno (позитивна) o malo (негативна)?",
  "Capitals": "Capitales",

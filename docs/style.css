@@ -363,3 +363,5 @@ textarea.kbtext:focus{outline:none;border-color:var(--ink)}
 .kbpage button.bs,.kbpage button.sh{max-width:70px}
 .kblink{color:var(--blue);font-weight:600;font-size:14px;text-decoration:none}
 .kblink:hover{text-decoration:underline}
+.q .gap.wrong{min-width:0;padding:0 4px;color:var(--red)}
+.q .gap.wrong s{text-decoration-thickness:2px}
