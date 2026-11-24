@@ -212,8 +212,8 @@ const GRAMMAR = {
 "1.4": [{
   id: "plural", game: "q0", ua: "Множина", en: "Plural", es: "El plural",
   rule: {
-    en: "він and вона́ words: <b>-и</b> or <b>-і</b> (стіл → столи́, сестра́ → се́стри, учи́тель → учителі́). воно́ words: <b>-а</b> or <b>-я</b> (вікно́ → ві́кна, мо́ре → моря́). Some are irregular: люди́на → <b>лю́ди</b>, дити́на → <b>ді́ти</b>, друг → <b>друзі́</b>, о́ко → <b>о́чі</b>. <br><b>На́голос!</b> In the plural the stress often moves: сестра́ → <b>се́стри</b>, вікно́ → <b>ві́кна</b>. Careful: <b>сестри́</b> (stress at the end) is a different form, «of the sister». You will learn it later.",
-    es: "Palabras він y вона́: <b>-и</b> o <b>-і</b> (стіл → столи́, сестра́ → се́стри, учи́тель → учителі́). Palabras воно́: <b>-а</b> o <b>-я</b> (вікно́ → ві́кна, мо́ре → моря́). Algunas son irregulares: люди́на → <b>лю́ди</b>, дити́на → <b>ді́ти</b>, друг → <b>друзі́</b>, о́ко → <b>о́чі</b>. <br><b>На́голос!</b> En plural el acento a menudo cambia de sitio: сестра́ → <b>се́стри</b>, вікно́ → <b>ві́кна</b>. Ojo: <b>сестри́</b> (acento al final) es otra forma, «de la hermana». La aprenderás más adelante."
+    en: "він and вона́ words: <b>-и</b> or <b>-і</b> (стіл → столи́, сестра́ → се́стри, учи́тель → учителі́). воно́ words: <b>-а</b> or <b>-я</b> (вікно́ → ві́кна, мо́ре → моря́). Some are irregular: люди́на → <b>лю́ди</b>, дити́на → <b>ді́ти</b>, друг → <b>дру́зі</b>, о́ко → <b>о́чі</b>. <br><b>На́голос!</b> In the plural the stress often moves: сестра́ → <b>се́стри</b>, вікно́ → <b>ві́кна</b>. But after <b>два / три / чоти́ри</b> the stress is different: <b>дві сестри́</b>, три сестри́. The same form сестри́ also means «of the sister»; you will learn it later.",
+    es: "Palabras він y вона́: <b>-и</b> o <b>-і</b> (стіл → столи́, сестра́ → се́стри, учи́тель → учителі́). Palabras воно́: <b>-а</b> o <b>-я</b> (вікно́ → ві́кна, мо́ре → моря́). Algunas son irregulares: люди́на → <b>лю́ди</b>, дити́на → <b>ді́ти</b>, друг → <b>дру́зі</b>, о́ко → <b>о́чі</b>. <br><b>На́голос!</b> En plural el acento a menudo cambia de sitio: сестра́ → <b>се́стри</b>, вікно́ → <b>ві́кна</b>. Pero después de <b>два / три / чоти́ри</b> el acento cambia: <b>дві сестри́</b>, три сестри́. La misma forma сестри́ también significa «de la hermana»; la aprenderás más adelante."
   },
   table: [["він", "кіт → коти́"], ["вона́", "ша́фа → ша́фи"], ["воно́", "яйце́ → я́йця"], ["!", "дити́на → ді́ти"]],
   cmp: {
@@ -233,8 +233,8 @@ const GRAMMAR = {
 }, {
   id: "one-two", game: "q0", ua: "Один, два, двоє", en: "One, two: оди́н / одна́, два / дві", es: "Uno, dos: оди́н / одна́, два / дві",
   rule: {
-    en: "«One» follows the gender: <b>оди́н</b> брат, <b>одна́</b> сестра́, <b>одне́</b> вікно́, <b>одні́</b> окуля́ри. «Two» has two forms: <b>два</b> (він, воно́), <b>дві</b> (вона́), then the plural: два брати́, дві се́стри. For people and children we often say <b>дво́є, тро́є, че́тверо</b>: У них дво́є діте́й.",
-    es: "«Uno» sigue el género: <b>оди́н</b> брат, <b>одна́</b> сестра́, <b>одне́</b> вікно́, <b>одні́</b> окуля́ри. «Dos» tiene dos formas: <b>два</b> (він, воно́), <b>дві</b> (вона́), y luego el plural: два брати́, дві се́стри. Para personas y niños se dice a menudo <b>дво́є, тро́є, че́тверо</b>: У них дво́є діте́й."
+    en: "«One» follows the gender: <b>оди́н</b> брат, <b>одна́</b> сестра́, <b>одне́</b> вікно́, <b>одні́</b> окуля́ри. «Two» has two forms: <b>два</b> (він, воно́), <b>дві</b> (вона́), then the plural: два брати́, дві сестри́. For people and children we often say <b>дво́є, тро́є, че́тверо</b>: У них дво́є діте́й.",
+    es: "«Uno» sigue el género: <b>оди́н</b> брат, <b>одна́</b> сестра́, <b>одне́</b> вікно́, <b>одні́</b> окуля́ри. «Dos» tiene dos formas: <b>два</b> (він, воно́), <b>дві</b> (вона́), y luego el plural: два брати́, дві сестри́. Para personas y niños se dice a menudo <b>дво́є, тро́є, че́тверо</b>: У них дво́є діте́й."
   },
   cmp: {
     en: "English «one» and «two» never change.",
