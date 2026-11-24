@@ -10,6 +10,14 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ST = s => String(s).replace(/`/g, "́");            // backtick → stress mark
 const plain = s => String(s).replace(/[`́]/g, "");
+/* Stressed answer for the feedback line: looks each word up in STRESS (stress.js) for that lesson, keeps the capital. */
+const STRESS_MAP = {};
+function SA(code, s){
+  if (typeof STRESS === "undefined" || !STRESS[code]) return s;
+  const m = STRESS_MAP[code] || (STRESS_MAP[code] = Object.fromEntries(STRESS[code].split(" ").map(w => [plain(w), w])));
+  return String(s).replace(/[А-Яа-яЄєІіЇїҐґ'’ʼ́]+/g, w => { if (/́/.test(w)) return w; const st = m[w.toLowerCase()];
+    return !st ? w : w.charAt(0) !== w.charAt(0).toLowerCase() ? st.charAt(0).toUpperCase() + st.slice(1) : st; });
+}
 /* ---------- interface language: 0 bilingual · 1 labels in Ukrainian · 2 everything in Ukrainian ---------- */
 let STAGE = 0;
 let EN = false;   // teacher screens and the teacher's settings are English only
@@ -1107,9 +1115,9 @@ function gQuiz(box, l, qi, spec, key){
       if (done) return; done = true; const ok = plain(b.dataset.o) === plain(ans); if (ok) { score++; markItem(l.code, K + "#" + idx); }
       b.classList.add(ok ? "ok" : "bad");
       if (!ok) box.querySelectorAll("[data-o]").forEach(x => { if (plain(x.dataset.o) === plain(ans)) x.classList.add("ok"); });
-      const full = ST(q).replace(/<span[^>]*>[^<]*<\/span>/g, "").replace("___", ST(ans)).trim();
+      const sans = SA(l.code, ST(ans)), full = ST(q).replace(/<span[^>]*>[^<]*<\/span>/g, "").replace("___", sans).trim();
       const topic = key ? null : (GRAMMAR[l.code] || []).find(t => t.game === K);
-      $("#qfb").innerHTML = `<div class="fb ${ok ? "ok" : "bad"}">${ok ? "✅ Правильно!" : "❌"} ${q.includes("___") ? esc(full) : I("Відповідь: ", "Answer: ") + "<b>" + esc(ST(ans)) + "</b>"}
+      $("#qfb").innerHTML = `<div class="fb ${ok ? "ok" : "bad"}">${ok ? "✅ Правильно!" : "❌"} ${q.includes("___") ? esc(full) : I("Відповідь: ", "Answer: ") + "<b>" + esc(sans) + "</b>"}
           ${!ok && topic ? `<br><button class="linkbtn" id="qrule">📖 ${L("Правило", "See the rule")}</button>` : ""}</div>
         <div class="row"><button class="btn" id="qn">Далі →</button></div>`;
       if ($("#qrule")) $("#qrule").onclick = () => { view.gfocus = topic.id; setTab(l, "teo"); renderLesson(); };
@@ -1158,8 +1166,8 @@ function gOrder(box, l, Q, K){
       const ok = !!hit; if (ok) { score++; markItem(l.code, K + "#" + idx); }
       const shown = hit || main, also = acc.filter(s => s !== shown);
       speak(plain(shown));
-      done = { ok, html: `<div class="fb ${ok ? "ok" : "bad"}">${ok ? "✅ Правильно!" : "❌"} ${esc(ST(shown))}
-        ${also.length ? `<div class="oalso">${L("Теж правильно", "Also correct")}: ${also.map(s => esc(ST(s))).join(" · ")}</div>` : ""}</div>
+      done = { ok, html: `<div class="fb ${ok ? "ok" : "bad"}">${ok ? "✅ Правильно!" : "❌"} ${esc(SA(l.code, ST(shown)))}
+        ${also.length ? `<div class="oalso">${L("Теж правильно", "Also correct")}: ${also.map(s => esc(SA(l.code, ST(s)))).join(" · ")}</div>` : ""}</div>
         <div class="row"><button class="btn" id="qn">Далі →</button></div>` };
       paint();
     }

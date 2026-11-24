@@ -128,3 +128,6 @@ languages: Ukrainian gradually replaces the explanation language. Teacher screen
 - "Fix the mistake" games: the wrong word is `<span class=wrong>X</span>___` (shown crossed out in the gap).
 - Miro: z-order follows creation order and can't be changed via the API. Draggable cards (fill #fff6b6) must be created
   AFTER the answer zones (fill #fffbed, stroke #ffdc4a). On ES and Facundo's boards the cards were recreated on top (24 Nov).
+- Stress in feedback: docs/stress.js lists stressed answer words per lesson; SA(code, text) adds them in the feedback line
+  only (answer buttons stay unstressed). Done for Unit 0 and 1.4; each form hand-checked (the ukrainian-word-stress
+  tool is wrong on some forms, e.g. мене́, руки gen., double marks on роки/років).

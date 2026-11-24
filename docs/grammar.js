@@ -212,10 +212,10 @@ const GRAMMAR = {
 "1.4": [{
   id: "plural", game: "q0", ua: "Множина", en: "Plural", es: "El plural",
   rule: {
-    en: "він and вона words: <b>-и</b> or <b>-і</b> (стіл → столи, сестра → сестри, учитель → учителі). воно words: <b>-а</b> or <b>-я</b> (вікно → вікна, море → моря). Some are irregular: людина → <b>люди</b>, дитина → <b>діти</b>, друг → <b>друзі</b>, око → <b>очі</b>.",
-    es: "Palabras він y вона: <b>-и</b> o <b>-і</b> (стіл → столи, сестра → сестри, учитель → учителі). Palabras воно: <b>-а</b> o <b>-я</b> (вікно → вікна, море → моря). Algunas son irregulares: людина → <b>люди</b>, дитина → <b>діти</b>, друг → <b>друзі</b>, око → <b>очі</b>."
+    en: "він and вона́ words: <b>-и</b> or <b>-і</b> (стіл → столи́, сестра́ → се́стри, учи́тель → учителі́). воно́ words: <b>-а</b> or <b>-я</b> (вікно́ → ві́кна, мо́ре → моря́). Some are irregular: люди́на → <b>лю́ди</b>, дити́на → <b>ді́ти</b>, друг → <b>друзі́</b>, о́ко → <b>о́чі</b>. <br><b>На́голос!</b> In the plural the stress often moves: сестра́ → <b>се́стри</b>, вікно́ → <b>ві́кна</b>. Careful: <b>сестри́</b> (stress at the end) is a different form, «of the sister». You will learn it later.",
+    es: "Palabras він y вона́: <b>-и</b> o <b>-і</b> (стіл → столи́, сестра́ → се́стри, учи́тель → учителі́). Palabras воно́: <b>-а</b> o <b>-я</b> (вікно́ → ві́кна, мо́ре → моря́). Algunas son irregulares: люди́на → <b>лю́ди</b>, дити́на → <b>ді́ти</b>, друг → <b>друзі́</b>, о́ко → <b>о́чі</b>. <br><b>На́голос!</b> En plural el acento a menudo cambia de sitio: сестра́ → <b>се́стри</b>, вікно́ → <b>ві́кна</b>. Ojo: <b>сестри́</b> (acento al final) es otra forma, «de la hermana». La aprenderás más adelante."
   },
-  table: [["він", "кіт → коти"], ["вона", "шафа → шафи"], ["воно", "яйце → яйця"], ["!", "дитина → діти"]],
+  table: [["він", "кіт → коти́"], ["вона́", "ша́фа → ша́фи"], ["воно́", "яйце́ → я́йця"], ["!", "дити́на → ді́ти"]],
   cmp: {
     en: "Not one -s for everything: the ending depends on the gender.",
     es: "No es solo añadir -s: la terminación depende del género."
@@ -223,25 +223,24 @@ const GRAMMAR = {
 }, {
   id: "plural-only", game: "q1", ua: "Тільки множина", en: "Plural only", es: "Solo plural",
   rule: {
-    en: "Some nouns exist only in the plural: <b>окуляри</b> (glasses), <b>ножиці</b> (scissors), <b>штани</b> (trousers), <b>гроші</b> (money), <b>джинси</b>, <b>ліки</b>.",
-    es: "Algunos sustantivos solo existen en plural: <b>окуляри</b> (las gafas), <b>ножиці</b> (las tijeras), <b>штани</b> (los pantalones), <b>гроші</b> (el dinero), <b>джинси</b>, <b>ліки</b>."
+    en: "Some nouns exist only in the plural: <b>окуля́ри</b> (glasses), <b>но́жиці</b> (scissors), <b>штани́</b> (trousers), <b>гро́ші</b> (money), <b>джи́нси</b>, <b>лі́ки</b>.",
+    es: "Algunos sustantivos solo existen en plural: <b>окуля́ри</b> (las gafas), <b>но́жиці</b> (las tijeras), <b>штани́</b> (los pantalones), <b>гро́ші</b> (el dinero), <b>джи́нси</b>, <b>лі́ки</b>."
   },
   cmp: {
-    en: "Like English glasses, scissors, trousers. But гроші (money) is plural too!",
-    es: "Como las gafas, las tijeras, los pantalones. ¡Pero гроші (el dinero) también es plural!"
+    en: "Like English glasses, scissors, trousers. But гро́ші (money) is plural too!",
+    es: "Como las gafas, las tijeras, los pantalones. ¡Pero гро́ші (el dinero) también es plural!"
   }
 }, {
-  id: "one-two", game: "q0", ua: "Один, два, двоє", en: "One, two: один / одна, два / дві", es: "Uno, dos: один / одна, два / дві",
+  id: "one-two", game: "q0", ua: "Один, два, двоє", en: "One, two: оди́н / одна́, два / дві", es: "Uno, dos: оди́н / одна́, два / дві",
   rule: {
-    en: "«One» follows the gender: <b>один</b> брат, <b>одна</b> сестра, <b>одне</b> вікно, <b>одні</b> окуляри. «Two» has two forms: <b>два</b> (він, воно), <b>дві</b> (вона), then the plural: два брати, дві сестри. For people and children we often say <b>двоє, троє, четверо</b>: У них двоє дітей.",
-    es: "«Uno» sigue el género: <b>один</b> брат, <b>одна</b> сестра, <b>одне</b> вікно, <b>одні</b> окуляри. «Dos» tiene dos formas: <b>два</b> (він, воно), <b>дві</b> (вона), y luego el plural: два брати, дві сестри. Para personas y niños se dice a menudo <b>двоє, троє, четверо</b>: У них двоє дітей."
+    en: "«One» follows the gender: <b>оди́н</b> брат, <b>одна́</b> сестра́, <b>одне́</b> вікно́, <b>одні́</b> окуля́ри. «Two» has two forms: <b>два</b> (він, воно́), <b>дві</b> (вона́), then the plural: два брати́, дві се́стри. For people and children we often say <b>дво́є, тро́є, че́тверо</b>: У них дво́є діте́й.",
+    es: "«Uno» sigue el género: <b>оди́н</b> брат, <b>одна́</b> сестра́, <b>одне́</b> вікно́, <b>одні́</b> окуля́ри. «Dos» tiene dos formas: <b>два</b> (він, воно́), <b>дві</b> (вона́), y luego el plural: два брати́, дві се́стри. Para personas y niños se dice a menudo <b>дво́є, тро́є, че́тверо</b>: У них дво́є діте́й."
   },
   cmp: {
     en: "English «one» and «two» never change.",
     es: "Como un / una, pero también «dos» cambia: два / дві."
   }
-}],
-"1.5": [{
+}],"1.5": [{
   id: "adjectives", game: "q0", ua: "Який? Яка? Яке? Які?", en: "Adjective endings", es: "Terminaciones de los adjetivos",
   rule: {
     en: "An adjective takes the gender of its noun: <b>-ий</b> (він), <b>-а</b> (вона), <b>-е</b> (воно), <b>-і</b> (plural). Відомий канал, відома телеведуча, відоме місто, відомі люди.",
