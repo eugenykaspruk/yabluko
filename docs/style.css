@@ -365,3 +365,11 @@ textarea.kbtext:focus{outline:none;border-color:var(--ink)}
 .kblink:hover{text-decoration:underline}
 .q .gap.wrong{min-width:0;padding:0 4px;color:var(--red)}
 .q .gap.wrong s{text-decoration-thickness:2px}
+/* word tiles (type:"order") */
+.oline{min-height:58px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0 10px;border-bottom:2px solid var(--line);margin-bottom:14px}
+.oline.ok{border-color:var(--green)} .oline.bad{border-color:var(--red)}
+.oph{color:var(--muted);font-size:14px}
+.opool{display:flex;flex-wrap:wrap;gap:8px;min-height:50px}
+.otile{border:2px solid var(--line);background:var(--card);border-radius:12px;padding:10px 14px;font-size:18px;font-weight:500;box-shadow:0 2px 0 var(--line);touch-action:manipulation}
+.otile.used{visibility:hidden}
+.oalso{margin-top:6px;color:var(--muted);font-size:13.5px}

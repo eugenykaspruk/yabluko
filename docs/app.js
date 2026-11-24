@@ -102,6 +102,7 @@ const HINT_UA = {
   "Look at the noun: він, вона, воно or plural?": "Подивись на іменник: він, вона, воно чи множина?",
   "Click a male word, then its female partner. Example: тато → мама.": "Натисни на слово чоловічого роду, потім — на його пару. Наприклад: тато → мама.",
   "Choose the right job.": "Обери правильну професію.",
+  "Tap the words in the right order.": "Натискай на слова в правильному порядку.",
   "Choose the right form.": "Обери правильну форму.",
   "Choose the right form before звати.": "Обери правильну форму перед «звати».",
   "Choose the right form after <b>у</b>. Remember: нього, неї, них start with <b>н-</b>.": "Обери правильну форму після <b>у</b>. Пам'ятай: нього, неї, них починаються з <b>н-</b>.",
@@ -1017,6 +1018,7 @@ function tExtra(box, l){
     $("#xback").onclick = () => { view.xg = null; renderLesson(); };
     const xb = $("#xg");
     if (open.s.type === "pairs") gPairs(xb, l, open.s, open.k);
+    else if (open.s.type === "order") gOrder(xb, l, open.s, open.k);
     else gQuiz(xb, l, 0, open.s, open.k);
     return;
   }
@@ -1113,6 +1115,55 @@ function gQuiz(box, l, qi, spec, key){
       if ($("#qrule")) $("#qrule").onclick = () => { view.gfocus = topic.id; setTab(l, "teo"); renderLesson(); };
       $("#qn").onclick = () => { i++; step(); }; $("#qn").focus();
     });
+  }
+  start();
+}
+
+/* Word tiles: tap the words in order to build the sentence. Each item lists every order the teacher accepts,
+   the usual one first; punctuation and capitals are not checked (they are filled in from the accepted sentence). */
+function gOrder(box, l, Q, K){
+  const words = s => String(s).replace(/[.,!?«»–]/g, " ").trim().split(/\s+/);
+  const norm = a => a.map(w => w.toLowerCase()).join(" ");
+  const tileOf = (w, i) => i === 0 ? w.charAt(0).toLowerCase() + w.slice(1) : w;   // no proper nouns at the start yet
+  let order, i, score;
+  const gpct = () => xPct(prog[l.code] || {}, { kind: "game", k: K, s: Q });
+  function start(){ order = shuffle(Q.items.map((it, idx) => [it, idx])); i = 0; score = 0; step(); }
+  function step(){
+    if (i >= order.length) {
+      const pct = score / order.length * 100;
+      box.innerHTML = `<div class="card"><div class="big" style="font-family:'Noto Serif',serif;font-size:26px">${score} / ${order.length}</div>
+        <div class="note">${pct === 100 ? "Відмінно!" : pct >= 80 ? I("Добре! Зараховано.", "Добре! Counts as done.") : I("Спробуй ще раз: потрібно 80%.", "Try again: 80% counts as done.")} · ${I(`гру пройдено на ${Math.round(gpct())}%`, F("{0}% of this game done", Math.round(gpct())))}</div></div>
+        <div class="row"><button class="btn ghost" id="qa">${L("Ще раз", "Again")}</button></div>`;
+      $("#qa").onclick = start; nextBtn(box, l, K, pct >= 80); return;
+    }
+    const [acc, idx] = order[i], main = acc[0];
+    const tiles = words(main).map(tileOf);
+    let pool, picked = [], done = false;
+    do { pool = shuffle(tiles.map((t, n) => n)); } while (tiles.length > 1 && acc.some(s => norm(pool.map(n => tiles[n])) === norm(words(s))));
+    function paint(){
+      box.innerHTML = `<div class="progress"><div style="width:${i / order.length * 100}%"></div></div>
+        <p class="note" style="margin:0 0 6px">${HU(Q.hint || "")}</p>
+        <div class="oline ${done ? (done.ok ? "ok" : "bad") : ""}">${picked.map(n => `<button class="otile" data-p="${n}" ${done ? "disabled" : ""}>${esc(tiles[n])}</button>`).join("") || `<span class="oph">${I("Натискай на слова", "Tap the words")}</span>`}</div>
+        <div class="opool">${pool.map(n => `<button class="otile ${picked.includes(n) ? "used" : ""}" data-n="${n}" ${picked.includes(n) || done ? "disabled" : ""}>${esc(tiles[n])}</button>`).join("")}</div>
+        <div id="qfb">${done ? done.html : ""}</div>
+        ${done ? "" : `<div class="row two"><button class="btn ghost" id="oclr" ${picked.length ? "" : "disabled"}>${L("Стерти", "Clear")}</button><button class="btn" id="ochk" ${picked.length === tiles.length ? "" : "disabled"}>Перевірити</button></div>`}`;
+      box.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { picked.push(+b.dataset.n); paint(); });
+      box.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { picked = picked.filter(n => n !== +b.dataset.p); paint(); });
+      if ($("#oclr")) $("#oclr").onclick = () => { picked = []; paint(); };
+      if ($("#ochk")) $("#ochk").onclick = check;
+      if (done) { $("#qn").onclick = () => { i++; step(); }; $("#qn").focus(); }
+    }
+    function check(){
+      const got = norm(picked.map(n => tiles[n])), hit = acc.find(s => norm(words(s)) === got);
+      const ok = !!hit; if (ok) { score++; markItem(l.code, K + "#" + idx); }
+      const shown = hit || main, also = acc.filter(s => s !== shown);
+      speak(plain(shown));
+      done = { ok, html: `<div class="fb ${ok ? "ok" : "bad"}">${ok ? "✅ Правильно!" : "❌"} ${esc(ST(shown))}
+        ${also.length ? `<div class="oalso">${L("Теж правильно", "Also correct")}: ${also.map(s => esc(ST(s))).join(" · ")}</div>` : ""}</div>
+        <div class="row"><button class="btn" id="qn">Далі →</button></div>` };
+      paint();
+    }
+    paint();
   }
   start();
 }
